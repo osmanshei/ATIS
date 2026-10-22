@@ -1,0 +1,16 @@
+{
+  "release": "ATIS Web v0.1.0",
+  "source_reference": "ATIS F8 Custom Edition v1.0.10",
+  "generated_from": "/mnt/data/ATIS_F8_Custom_Edition_v1_0_10.zip",
+  "core_modules": [
+    "auth",
+    "dashboard",
+    "students",
+    "staff",
+    "classes",
+    "subjects",
+    "teacher_assignments"
+  ],
+  "database": "PostgreSQL / Supabase",
+  "framework": "Next.js 16 App Router"
+}
