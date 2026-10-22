@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-labelledby="title desc">
+  <title id="title">ATIS</title>
+  <desc id="desc">AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL monogram</desc>
+  <rect width="240" height="240" rx="42" fill="#ffffff"/>
+  <path d="M120 24 198 54v62c0 50-31 84-78 104-47-20-78-54-78-104V54l78-30Z" fill="#0b3d26"/>
+  <path d="M120 44 181 67v48c0 39-23 66-61 84-38-18-61-45-61-84V67l61-23Z" fill="none" stroke="#c89b3c" stroke-width="6"/>
+  <text x="120" y="126" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="50" font-weight="700" fill="#ffffff">ATIS</text>
+  <text x="120" y="151" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="12" letter-spacing="2" fill="#c89b3c">EDUCATION</text>
+</svg>
