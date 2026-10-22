@@ -1,7 +1,7 @@
 # ATIS Web v0.1 staging setup checklist
 
 1. Create a **separate Supabase development/staging project**. Do not use the Apps Script production sheet as the new database.
-2. Run `supabase/migrations/0001_atis_core.sql` in Supabase SQL Editor.
+2. Run the four core migrations in order: `0001_01_atis_core.sql`, `0001_02_atis_core.sql`, `0001_03_atis_core.sql`, `0001_04_atis_core.sql`.
 3. Run `supabase/seed.sql`.
 4. Copy `.env.example` to `.env.local` and enter the Supabase URL, publishable key and server-only secret key.
 5. Set the bootstrap administrator values in `.env.local`.
