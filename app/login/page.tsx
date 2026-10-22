@@ -12,7 +12,7 @@ export default async function LoginPage({
     <main className="login-page">
       <section className="login-brand">
         <div>
-          <Image src="/atis-logo.jpg" alt="ATIS" width={100} height={100} priority />
+          <Image src="/atis-logo.svg" alt="ATIS" width={100} height={100} priority />
           <h1>ATIS Web</h1>
           <p>
             The hosted school-management platform for AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL.
