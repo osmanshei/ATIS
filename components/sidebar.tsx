@@ -9,7 +9,7 @@ export function Sidebar({ profile }: { profile: CurrentProfile }) {
   return (
     <aside className="sidebar">
       <div className="brand-row">
-        <Image src="/atis-logo.jpg" alt="ATIS" width={42} height={42} />
+        <Image src="/atis-logo.svg" alt="ATIS" width={42} height={42} />
         <div>
           <strong>ATIS Web</strong>
           <small>Core v0.1</small>
