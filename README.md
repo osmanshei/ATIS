@@ -26,12 +26,15 @@ Create a new Supabase project for the ATIS **development/staging** environment. 
 
 ## 2. Apply the database schema
 
-In Supabase SQL Editor, run:
+In Supabase SQL Editor, run these files **in order**:
 
-1. `supabase/migrations/0001_atis_core.sql`
-2. `supabase/seed.sql`
+1. `supabase/migrations/0001_01_atis_core.sql`
+2. `supabase/migrations/0001_02_atis_core.sql`
+3. `supabase/migrations/0001_03_atis_core.sql`
+4. `supabase/migrations/0001_04_atis_core.sql`
+5. `supabase/seed.sql`
 
-The seed creates the ATIS school row and the 2026–2027 academic year/terms.
+The migration is split into four transaction-safe parts for easier review and deployment. The seed creates the ATIS school row and the 2026–2027 academic year/terms.
 
 ## 3. Configure environment variables
 
@@ -62,7 +65,7 @@ Open `http://localhost:3000`.
 
 ## 6. Production deployment later
 
-Once the staging database is populated and reconciled, the app can be pushed to GitHub and imported into Vercel. Environment variables are then configured in Vercel, and a separate production Supabase project can be used for the final cutover.
+Once the staging database is populated and reconciled, the app can be imported into Vercel from this GitHub repository. Environment variables are then configured in Vercel, and a separate production Supabase project can be used for the final cutover.
 
 ## Source reference
 
