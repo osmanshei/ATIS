@@ -1,0 +1,2 @@
+AdmissionNumber,FirstName,MiddleName,LastName,Gender,DateOfBirth,ClassCode,ClassName,Section,AdmissionDate,GuardianName,GuardianRelation,GuardianMobile,AddressLine,City,Region,NHISNo,GhanaCardNo,MedicalNotes
+ATIS-2026-0001,Amina,,Issahaku,female,2018-05-14,B2,BASIC TWO,,2026-10-23,Abdul Issahaku,Father,0240000000,Bimbilla,Bimbilla,Northern,,,
