@@ -21,6 +21,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "supervisor", "clerk"],
   },
   {
+    href: "/bulk-onboarding",
+    label: "Bulk Onboarding",
+    short: "BO",
+    roles: ["admin", "supervisor", "clerk"],
+  },
+  {
     href: "/students",
     label: "Students",
     short: "ST",
