@@ -27,16 +27,18 @@ begin
   if v_name is null and v_digits='' then return null; end if;
   if v_name is null then v_name := 'Guardian'; end if;
 
-  -- Reuse an existing guardian regardless of whether it came from the legacy
-  -- migration or from the hosted app.
-  select id into v_id
-  from public.guardians
-  where school_id=p_school_id
-    and lower(trim(full_name))=lower(v_name)
-    and regexp_replace(coalesce(mobile,''),'[^0-9]','','g')=v_digits
-  limit 1;
+  -- Reuse an existing guardian by name + phone when a phone number is known.
+  -- If phone is blank, avoid merging unrelated people who happen to share a name.
+  if v_digits <> '' then
+    select id into v_id
+    from public.guardians
+    where school_id=p_school_id
+      and lower(trim(full_name))=lower(v_name)
+      and regexp_replace(coalesce(mobile,''),'[^0-9]','','g')=v_digits
+    limit 1;
 
-  if v_id is not null then return v_id; end if;
+    if v_id is not null then return v_id; end if;
+  end if;
 
   v_key := 'live|' || v_digits || '|' || lower(v_name) || '|' || lower(coalesce(p_relation,'guardian'));
 
