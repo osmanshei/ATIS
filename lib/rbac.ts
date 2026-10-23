@@ -15,6 +15,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "supervisor", "accountant", "teacher", "clerk", "staff", "student", "parent"],
   },
   {
+    href: "/admissions",
+    label: "Admissions",
+    short: "AD",
+    roles: ["admin", "supervisor", "clerk"],
+  },
+  {
     href: "/students",
     label: "Students",
     short: "ST",
