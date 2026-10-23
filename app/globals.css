@@ -127,3 +127,47 @@ tr:last-child td { border-bottom: 0; }
   .cards, .grid-2, .form-grid { grid-template-columns: 1fr; }
   .page-head { align-items: flex-start; flex-direction: column; }
 }
+
+
+/* Admissions and printable documents */
+.action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.button.compact { padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.inline-reject { display: flex; align-items: center; gap: 6px; }
+.inline-reject input { width: 150px; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
+
+.letter-shell { max-width: 920px; margin: 0 auto; }
+.letter-toolbar { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.letter-page {
+  background: white;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  padding: 48px 56px;
+  min-height: 1120px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.letter-header { display: flex; align-items: center; gap: 18px; border-bottom: 3px solid var(--green-800); padding-bottom: 16px; }
+.letter-header h1 { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 23px; color: var(--green-950); }
+.letter-header p { margin: 2px 0; color: #4e5d54; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 13px; }
+.letter-meta { display: flex; justify-content: space-between; margin: 22px 0 36px; font-size: 14px; }
+.letter-page > h2 { text-align: center; text-decoration: underline; letter-spacing: .05em; margin: 20px 0 34px; }
+.letter-signature { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; margin-top: 90px; }
+.letter-signature p { margin-top: 2px; color: var(--muted); }
+.signature-line { border-top: 1px solid #222; margin-bottom: 8px; }
+
+@media (max-width: 700px) {
+  .letter-page { padding: 28px 20px; min-height: 0; }
+  .letter-header { align-items: flex-start; }
+  .letter-meta, .letter-signature { grid-template-columns: 1fr; display: grid; gap: 20px; }
+}
+
+@media print {
+  body { background: white; }
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .shell { display: block; }
+  .main, .content { margin: 0; padding: 0; max-width: none; }
+  .letter-shell { max-width: none; margin: 0; }
+  .letter-page { border: 0; box-shadow: none; padding: 14mm 16mm; min-height: auto; }
+  @page { size: A4; margin: 0; }
+}
