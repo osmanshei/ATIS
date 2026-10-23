@@ -54,8 +54,9 @@ export default async function DashboardPage({
         <section className="card">
           <h2 className="section-title">Migration status</h2>
           <p className="muted">
-            v0.2 adds the hosted Admissions workflow and printable admission letters. Bulk onboarding,
-            attendance, assessments, finance and HR are the next operational modules.
+            v0.3 adds hosted staff onboarding, Supabase staff logins, login-detail delivery,
+            staff appointments/contracts, printable appointment letters and self-service password changes.
+            Attendance, assessments/results and finance are the next operational modules.
           </p>
         </section>
       </div>
