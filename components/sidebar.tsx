@@ -12,7 +12,7 @@ export function Sidebar({ profile }: { profile: CurrentProfile }) {
         <Image src="/atis-logo.svg" alt="ATIS" width={42} height={42} />
         <div>
           <strong>ATIS Web</strong>
-          <small>Core v0.2</small>
+          <small>Core v0.3</small>
         </div>
       </div>
 
