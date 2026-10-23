@@ -8,11 +8,12 @@ export default async function DashboardPage({
   const { supabase, profile } = await requireProfile();
   const params = await searchParams;
 
-  const [students, staff, classes, subjects, yearResult] = await Promise.all([
+  const [students, staff, classes, subjects, admissions, yearResult] = await Promise.all([
     supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("staff").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("classes").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("subject_catalogue").select("id", { count: "exact", head: true }).eq("is_active", true),
+    supabase.from("admissions").select("id", { count: "exact", head: true }).in("status", ["registered", "under_review", "admitted"]),
     supabase.from("academic_years").select("name").eq("is_current", true).maybeSingle(),
   ]);
 
@@ -21,6 +22,7 @@ export default async function DashboardPage({
     ["Active staff", staff.count ?? 0, "Teaching and non-teaching staff"],
     ["Classes", classes.count ?? 0, "Optional sections remain supported"],
     ["Subjects", subjects.count ?? 0, "Master subject catalogue"],
+    ["Open admissions", admissions.count ?? 0, "Registered, under review or admitted"],
   ];
 
   return (
@@ -32,7 +34,7 @@ export default async function DashboardPage({
         </div>
       </div>
       {params.denied ? <div className="notice">Your account does not have permission for that area.</div> : null}
-      <div className="cards">
+      <div className="cards cards-five">
         {stats.map(([label, value, note]) => (
           <div className="card" key={String(label)}>
             <div className="stat-label">{label}</div>
@@ -52,8 +54,8 @@ export default async function DashboardPage({
         <section className="card">
           <h2 className="section-title">Migration status</h2>
           <p className="muted">
-            v0.1 contains the core identity and academic model. Admissions, bulk onboarding, attendance,
-            assessments, finance and HR will be moved after the core data migration is verified.
+            v0.2 adds the hosted Admissions workflow and printable admission letters. Bulk onboarding,
+            attendance, assessments, finance and HR are the next operational modules.
           </p>
         </section>
       </div>
