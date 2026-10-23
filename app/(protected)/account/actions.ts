@@ -10,7 +10,7 @@ export async function changePasswordAction(
   _previous: PasswordState,
   formData: FormData,
 ): Promise<PasswordState> {
-  const { supabase, user } = await requireProfile();
+  const { supabase } = await requireProfile();
   const password = String(formData.get("password") || "");
   const confirm = String(formData.get("confirm_password") || "");
 
@@ -24,10 +24,7 @@ export async function changePasswordAction(
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { ok: false, message: error.message };
 
-  await supabase
-    .from("profiles")
-    .update({ must_change_password: false })
-    .eq("user_id", user.id);
+  await supabase.rpc("mark_own_password_changed");
 
   revalidatePath("/account");
   revalidatePath("/dashboard");
