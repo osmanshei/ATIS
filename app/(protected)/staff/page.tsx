@@ -1,14 +1,17 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 
 export default async function StaffPage() {
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
   const { data, error } = await supabase
     .from("staff")
-    .select("id,employee_code,full_name,email,mobile,role,position_title,specialization_duty,status")
+    .select("id,user_id,employee_code,full_name,email,mobile,role,position_title,specialization_duty,status")
     .order("full_name")
     .limit(300);
 
   const rows = (data || []) as any[];
+  const isAdmin = profile.role === "admin";
+
   return (
     <>
       <div className="page-head">
@@ -16,12 +19,20 @@ export default async function StaffPage() {
           <h1>Staff</h1>
           <p>Teaching and non-teaching staff share one HR record while permissions remain role-based.</p>
         </div>
-        <span className="tag">{rows.length} loaded</span>
+        <div className="action-row">
+          {isAdmin ? <Link className="button" href="/staff/onboarding">Bulk onboard staff</Link> : null}
+          <Link className="button secondary" href="/staff/contracts">Appointments & Contracts</Link>
+        </div>
       </div>
       {error ? <div className="notice error">{error.message}</div> : null}
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Employee Code</th><th>Name</th><th>Role</th><th>Duty / Position</th><th>Phone</th><th>Email</th><th>Status</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Employee Code</th><th>Name</th><th>Role</th><th>Duty / Position</th>
+              <th>Phone</th><th>Email</th><th>Login</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
@@ -31,10 +42,25 @@ export default async function StaffPage() {
                 <td>{r.position_title || r.specialization_duty || "—"}</td>
                 <td>{r.mobile || "—"}</td>
                 <td>{r.email || "—"}</td>
+                <td>{r.user_id ? <span className="tag">Created</span> : <span className="tag gray">Not created</span>}</td>
                 <td>{r.status}</td>
+                <td>
+                  <div className="action-row">
+                    {isAdmin ? (
+                      <Link className="button secondary compact" href={"/staff/" + r.id + "/access"}>
+                        {r.user_id ? "Send Login Details" : "Create Login"}
+                      </Link>
+                    ) : null}
+                    {r.role === "teacher" ? (
+                      <Link className="button secondary compact" href="/teacher-assignments">
+                        Subject Assignments
+                      </Link>
+                    ) : null}
+                  </div>
+                </td>
               </tr>
             ))}
-            {!rows.length ? <tr><td colSpan={7} className="muted">No staff have been migrated yet.</td></tr> : null}
+            {!rows.length ? <tr><td colSpan={9} className="muted">No staff records yet.</td></tr> : null}
           </tbody>
         </table>
       </div>
