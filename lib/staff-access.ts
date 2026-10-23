@@ -110,7 +110,8 @@ export async function sendStaffCredentials(
   },
 ) {
   const result = { smsSent: false, smsReason: "", emailSent: false, emailReason: "" };
-  const loginUrl = args.loginUrl || process.env.NEXT_PUBLIC_APP_URL || "";
+  const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "";
+  const loginUrl = args.loginUrl || process.env.NEXT_PUBLIC_APP_URL || (vercelHost ? "https://" + vercelHost : "");
   const plainMessage =
     "Dear " + args.fullName + ", ATIS staff login: " + (loginUrl ? loginUrl + " " : "") +
     "Username: " + args.username + ". Temporary password: " + args.temporaryPassword +
