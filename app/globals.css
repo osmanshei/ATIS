@@ -180,3 +180,26 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 640px) {
   .cards-five { grid-template-columns: 1fr; }
 }
+
+
+.credentials-box {
+  margin-top: 16px;
+  border: 1px dashed var(--green-700);
+  background: #f5fbf7;
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+.credentials-box > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+}
+.credentials-box span { color: var(--muted); font-size: 13px; }
+.credentials-box strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 15px;
+  word-break: break-all;
+}
