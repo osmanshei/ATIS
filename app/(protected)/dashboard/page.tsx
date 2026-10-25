@@ -39,6 +39,7 @@ export default async function DashboardPage({
             <Link className="button hero-button" href="/attendance">Take Attendance</Link>
             <Link className="button secondary hero-secondary" href="/assessments">Enter Scores</Link>
             <Link className="button secondary hero-secondary" href="/teacher-assignments">My Teaching</Link>
+            <Link className="button secondary hero-secondary" href="/timetable">My Timetable</Link>
           </div>
         </section>
 
@@ -222,6 +223,7 @@ export default async function DashboardPage({
           <Link className="button secondary hero-secondary" href="/staff">Staff</Link>
           <Link className="button secondary hero-secondary" href="/results">Results</Link>
           <Link className="button secondary hero-secondary" href="/finance">Finance</Link>
+          <Link className="button secondary hero-secondary" href="/timetable">Timetable</Link>
           <Link className="button secondary hero-secondary" href="/portal-access">Portals</Link>
         </div>
       </section>
@@ -249,10 +251,10 @@ export default async function DashboardPage({
         </section>
         <section className="card">
           <div className="eyebrow">Build progress</div>
-          <h2 className="section-title">ATIS Web v0.8.1</h2>
+          <h2 className="section-title">ATIS Web v0.9.0</h2>
           <p className="muted">
             Role-specific teacher access, attendance, assessments, report cards and the core Finance module are now in place.
-            Parent/student self-service and private student photos are now included. Timetable, communications and advanced HR/operations remain.
+            Parent/student self-service, private student/staff photos, subject aspects and timetable scheduling are now included. Communications and advanced HR/operations remain.
           </p>
         </section>
       </div>

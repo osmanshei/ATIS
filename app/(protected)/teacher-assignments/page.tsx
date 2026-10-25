@@ -38,8 +38,8 @@ export default async function TeacherAssignmentsPage({
           <h1>{canEdit ? "Teacher Assignments" : "My Teaching"}</h1>
           <p>
             {canEdit
-              ? "Assign teachers to the classes and subjects they teach."
-              : "Only the classes and subjects assigned to you are shown here."}
+              ? "Assign teachers to the main subjects they teach. Teaching aspects are selected later when lessons are placed on the timetable."
+              : "Only the main subjects assigned to you are shown here; aspect-specific lessons appear on My Timetable."}
           </p>
         </div>
       </div>

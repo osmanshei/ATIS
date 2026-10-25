@@ -100,3 +100,76 @@ export async function updateSubjectAction(formData: FormData) {
   revalidatePath("/teacher-assignments");
   redirect("/subjects?ok=" + encodeURIComponent("Subject updated."));
 }
+
+
+export async function saveSubjectAspectAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor"]);
+  const subjectId = String(formData.get("subject_id") || "").trim();
+  const aspectId = String(formData.get("aspect_id") || "").trim();
+
+  if (!subjectId) {
+    redirect("/subjects?error=" + encodeURIComponent("Subject is required."));
+  }
+
+  const payload = {
+    id: aspectId,
+    subject_id: subjectId,
+    aspect_name: String(formData.get("aspect_name") || "").trim(),
+    aspect_code: String(formData.get("aspect_code") || "").trim().toUpperCase(),
+    display_order: String(formData.get("display_order") || "1"),
+    is_active: formData.get("is_active") === "on",
+  };
+
+  const { error } = await supabase.rpc("save_subject_aspect", {
+    p_payload: payload,
+  });
+
+  if (error) {
+    redirect(
+      "/subjects/" + subjectId + "/aspects?error=" + encodeURIComponent(error.message),
+    );
+  }
+
+  revalidatePath("/subjects");
+  revalidatePath("/subjects/" + subjectId + "/aspects");
+  revalidatePath("/timetable");
+  redirect(
+    "/subjects/" + subjectId + "/aspects?ok=" +
+      encodeURIComponent(aspectId ? "Subject aspect updated." : "Subject aspect created."),
+  );
+}
+
+export async function saveClassSubjectAspectAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor"]);
+  const subjectId = String(formData.get("subject_id") || "").trim();
+  const linkId = String(formData.get("class_subject_aspect_id") || "").trim();
+
+  if (!subjectId) {
+    redirect("/subjects?error=" + encodeURIComponent("Subject is required."));
+  }
+
+  const payload = {
+    id: linkId,
+    class_subject_id: String(formData.get("class_subject_id") || "").trim(),
+    subject_aspect_id: String(formData.get("subject_aspect_id") || "").trim(),
+    periods_per_week: String(formData.get("periods_per_week") || "").trim(),
+    is_active: formData.get("is_active") === "on",
+  };
+
+  const { error } = await supabase.rpc("save_class_subject_aspect", {
+    p_payload: payload,
+  });
+
+  if (error) {
+    redirect(
+      "/subjects/" + subjectId + "/aspects?error=" + encodeURIComponent(error.message),
+    );
+  }
+
+  revalidatePath("/subjects/" + subjectId + "/aspects");
+  revalidatePath("/timetable");
+  redirect(
+    "/subjects/" + subjectId + "/aspects?ok=" +
+      encodeURIComponent(linkId ? "Class aspect settings updated." : "Aspect enabled for class."),
+  );
+}

@@ -54,6 +54,7 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Pro
               <td>
                 <div className="action-row">
                 <Link className="button secondary compact" href={"/subjects/" + s.id + "/edit"}>Edit</Link>
+                <Link className="button secondary compact" href={"/subjects/" + s.id + "/aspects"}>Manage Aspects</Link>
                 <form action={setSubjectReportFlagAction}>
                   <input type="hidden" name="subject_id" value={s.id} />
                   <input type="hidden" name="include_on_report" value={s.include_on_report ? "false" : "true"} />

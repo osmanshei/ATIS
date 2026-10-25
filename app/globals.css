@@ -2205,3 +2205,222 @@ tbody tr:hover { background: #fbfdfb; }
     flex-direction: column;
   }
 }
+
+
+/* ATIS v0.9 timetable and subject aspects */
+.aspect-edit-list,
+.period-edit-list {
+  display: grid;
+  gap: 9px;
+}
+.aspect-edit-row,
+.period-edit-row {
+  display: grid;
+  grid-template-columns: minmax(180px,1.4fr) minmax(120px,.8fr) 90px auto auto;
+  gap: 10px;
+  align-items: end;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.period-edit-row {
+  grid-template-columns: 70px minmax(140px,1.2fr) 110px 110px 80px auto auto auto;
+}
+.aspect-edit-row .field,
+.period-edit-row .field,
+.inline-save-form .field {
+  margin: 0;
+}
+.small-field input { max-width: 90px; }
+.compact-check {
+  align-self: center;
+  white-space: nowrap;
+}
+.inline-save-form {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.compact-number {
+  width: 78px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+}
+.period-year-filter {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.period-year-filter .field { margin: 0; min-width: 240px; }
+.period-form-grid {
+  display: grid;
+  grid-template-columns: 100px 1.2fr 130px 130px 100px auto auto;
+  gap: 10px;
+  align-items: end;
+}
+.timetable-filter {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(150px,1fr)) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+.timetable-filter .field { margin: 0; }
+.timetable-entry-form { margin-bottom: 14px; }
+.timetable-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 11px;
+}
+.timetable-entry-grid .field { margin: 0; }
+.timetable-entry-grid .span-2 { grid-column: span 2; }
+.timetable-edit-cancel { margin: -6px 0 14px; }
+.timetable-print-sheet {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.timetable-print-header {
+  margin-bottom: 12px;
+  text-align: center;
+}
+.timetable-print-header h2 {
+  margin: 3px 0;
+  color: var(--green-950);
+  font-size: 20px;
+}
+.timetable-print-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.timetable-grid {
+  width: 100%;
+  min-width: 960px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.timetable-grid th,
+.timetable-grid td {
+  border: 1px solid #dce5df;
+  vertical-align: top;
+}
+.timetable-grid th {
+  padding: 9px 7px;
+  background: var(--green-900);
+  color: #fff;
+  font-size: 9px;
+}
+.timetable-grid td {
+  min-height: 76px;
+  padding: 8px;
+  font-size: 10px;
+}
+.timetable-grid .time-col {
+  width: 116px;
+  background: #f7faf8;
+}
+.timetable-grid .time-col strong,
+.timetable-grid .time-col small {
+  display: block;
+}
+.timetable-grid .time-col small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 8px;
+}
+.timetable-lesson-cell strong,
+.timetable-lesson-cell span,
+.timetable-lesson-cell small {
+  display: block;
+}
+.timetable-lesson-cell strong {
+  color: var(--green-950);
+  font-size: 10px;
+  line-height: 1.25;
+}
+.timetable-lesson-cell span {
+  margin-top: 4px;
+  color: var(--ink-2);
+  font-size: 8.5px;
+}
+.timetable-lesson-cell small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 7.5px;
+}
+.timetable-empty-cell {
+  color: #a3aea7;
+  text-align: center;
+}
+.timetable-break-row td {
+  min-height: auto;
+  padding: 7px 8px;
+  background: #f1f4f2;
+  color: #66736b;
+  text-align: center;
+}
+.timetable-break-row .time-col { text-align: left; }
+.timetable-cell-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+.timetable-cell-actions form { margin: 0; }
+
+@media (max-width:1100px) {
+  .timetable-filter { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .timetable-entry-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .period-form-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .period-edit-row { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}
+@media (max-width:720px) {
+  .aspect-edit-row,
+  .period-edit-row,
+  .timetable-filter,
+  .timetable-entry-grid,
+  .period-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .timetable-entry-grid .span-2 { grid-column: auto; }
+  .period-year-filter { align-items: stretch; flex-direction: column; }
+  .period-year-filter .field { min-width: 0; }
+  .inline-save-form { align-items: flex-start; flex-direction: column; }
+}
+@media print {
+  .timetable-print-sheet {
+    padding: 5mm;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .timetable-print-header { margin-bottom: 3mm; }
+  .timetable-print-header h2 { font-size: 14pt; }
+  .timetable-print-header p { font-size: 8pt; }
+  .timetable-table-wrap { overflow: visible; }
+  .timetable-grid {
+    min-width: 0;
+    table-layout: fixed;
+  }
+  .timetable-grid th {
+    padding: 2.3mm 1.5mm;
+    background: #e5ece7 !important;
+    color: #111 !important;
+    font-size: 6.5pt;
+  }
+  .timetable-grid td {
+    padding: 2mm 1.4mm;
+    font-size: 6.5pt;
+  }
+  .timetable-grid .time-col { width: 25mm; }
+  .timetable-lesson-cell strong { font-size: 6.5pt; }
+  .timetable-lesson-cell span { font-size: 5.8pt; }
+  .timetable-lesson-cell small { font-size: 5.2pt; }
+}
