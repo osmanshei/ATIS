@@ -364,7 +364,7 @@ with (security_invoker=true)
 as
 with ca_totals as (
   select
-    a.setup_id,
+    a.id setup_id,
     st.id student_id,
     sum(case when ca.is_absent then 0 else coalesce(ca.raw_score,0) end) raw_total,
     sum(ass.max_mark) possible_total
