@@ -35,3 +35,36 @@ export async function createClassAction(formData: FormData) {
   revalidatePath("/classes");
   redirect("/classes?ok=Class+created.");
 }
+
+
+export async function updateClassAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor"]);
+  const classId = String(formData.get("class_id") || "").trim();
+
+  const payload = {
+    class_name: String(formData.get("class_name") || "").trim(),
+    section: String(formData.get("section") || "").trim(),
+    grade_level: String(formData.get("grade_level") || "").trim(),
+    class_code: String(formData.get("class_code") || "").trim(),
+    max_capacity: String(formData.get("max_capacity") || "").trim(),
+    room_number: String(formData.get("room_number") || "").trim(),
+    is_active: formData.get("is_active") === "on",
+  };
+
+  const { error } = await supabase.rpc("update_class_record", {
+    p_class_id: classId,
+    p_payload: payload,
+  });
+
+  if (error) {
+    redirect("/classes/" + classId + "/edit?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/classes");
+  revalidatePath("/students");
+  revalidatePath("/subjects");
+  revalidatePath("/teacher-assignments");
+  revalidatePath("/finance");
+  revalidatePath("/finance/balances");
+  redirect("/classes?ok=" + encodeURIComponent("Class updated."));
+}
