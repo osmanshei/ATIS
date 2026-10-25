@@ -30,7 +30,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/students",
     label: "Students",
     short: "ST",
-    roles: ["admin", "supervisor", "teacher", "clerk"],
+    roles: ["admin", "supervisor", "clerk"],
   },
   {
     href: "/staff",
@@ -48,13 +48,13 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/classes",
     label: "Classes & Sections",
     short: "CL",
-    roles: ["admin", "supervisor", "teacher", "clerk"],
+    roles: ["admin", "supervisor", "clerk"],
   },
   {
     href: "/subjects",
     label: "Subjects",
     short: "SU",
-    roles: ["admin", "supervisor", "teacher"],
+    roles: ["admin", "supervisor"],
   },
   {
     href: "/teacher-assignments",
