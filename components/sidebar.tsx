@@ -30,6 +30,8 @@ function NavIcon({ code }: { code: string }) {
     SU: <svg {...common}><path d="M4 5.5 12 3l8 2.5-8 2.5z"/><path d="M6 8v7c2 2 10 2 12 0V8"/></svg>,
     TA: <svg {...common}><path d="M4 4h16v6H4z"/><path d="M7 15h4v5H7zM13 15h4v5h-4z"/><path d="M12 10v3"/></svg>,
     AT: <svg {...common}><path d="M5 4h14v17H5z"/><path d="M8 8h8"/><path d="m8 13 2 2 4-4"/></svg>,
+    AS: <svg {...common}><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h5M8 16h3"/><path d="m15 15 2 2 3-4"/></svg>,
+    RS: <svg {...common}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
     AC: <svg {...common}><circle cx="12" cy="8" r="3"/><path d="M5 21c.8-4.5 3.1-6.5 7-6.5s6.2 2 7 6.5"/></svg>,
   };
 
@@ -61,7 +63,11 @@ export function Sidebar({ profile }: { profile: CurrentProfile }) {
           const label =
             profile.role === "teacher" && item.href === "/teacher-assignments"
               ? "My Teaching"
-              : item.label;
+              : profile.role === "teacher" && item.href === "/assessments"
+                ? "My Assessments"
+                : profile.role === "teacher" && item.href === "/results"
+                  ? "My Results"
+                  : item.label;
 
           return (
             <Link
