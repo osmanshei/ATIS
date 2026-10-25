@@ -56,8 +56,7 @@ export default async function StudentFinancePage({
         .order("payment_date", { ascending: false }),
       supabase
         .from("fee_items")
-        .select("id,fee_name,amount")
-        .eq("class_id", student.class_id)
+        .select("id,class_id,applies_to_all_students,fee_name,amount")
         .eq("term_id", termId)
         .eq("is_active", true)
         .order("fee_name"),
@@ -68,6 +67,10 @@ export default async function StudentFinancePage({
         .eq("term_id", termId)
         .order("created_at", { ascending: false }),
     ]);
+
+  const applicableFeeItems = (feeItems || []).filter(
+    (f: any) => f.applies_to_all_students || f.class_id === student.class_id,
+  );
 
   const name = [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
   const classLabel = cls ? cls.class_name + (cls.section ? " / " + cls.section : "") : "—";
@@ -147,7 +150,7 @@ export default async function StudentFinancePage({
             <label>Apply to fee item</label>
             <select name="fee_item_id">
               <option value="">Entire term bill</option>
-              {(feeItems || []).map((f: any) => <option key={f.id} value={f.id}>{f.fee_name} · {money(f.amount)}</option>)}
+              {applicableFeeItems.map((f: any) => <option key={f.id} value={f.id}>{f.fee_name} · {money(f.amount)}</option>)}
             </select>
           </div>
           <div className="form-grid">
@@ -172,7 +175,7 @@ export default async function StudentFinancePage({
             <thead><tr><th>Type</th><th>Scope</th><th>Calculation</th><th>Value</th><th>Reason</th><th>Status</th></tr></thead>
             <tbody>
               {(adjustments || []).map((a: any) => {
-                const fi = (feeItems || []).find((f: any) => f.id === a.fee_item_id);
+                const fi = applicableFeeItems.find((f: any) => f.id === a.fee_item_id);
                 return (
                   <tr key={a.id}>
                     <td>{String(a.adjustment_type).replaceAll("_", " ")}</td>
