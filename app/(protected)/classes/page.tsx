@@ -2,7 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClassAction } from "./actions";
 
 export default async function ClassesPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const { supabase, profile } = await requireProfile(["admin", "supervisor", "teacher", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
   const params = await searchParams;
   const { data, error } = await supabase
     .from("class_summary")
