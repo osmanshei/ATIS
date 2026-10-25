@@ -1810,3 +1810,124 @@ tbody tr:hover { background: #fbfdfb; }
   .receipt-header p { font-size:7px; }
   .receipt-header h2 { font-size:9px; }
 }
+
+
+/* ATIS v0.7.1 finance refinements */
+.fee-scope-box {
+  margin: 12px 0;
+  padding: 13px 14px;
+  border: 1px solid #cfe0d5;
+  border-radius: 13px;
+  background: var(--green-50);
+}
+.fee-scope-box .checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fee-scope-box .checkbox-field input {
+  margin-top: 3px;
+}
+.fee-scope-box .checkbox-field span {
+  display: grid;
+  gap: 3px;
+}
+.fee-scope-box .checkbox-field strong {
+  color: var(--green-900);
+  font-size: 12px;
+}
+.fee-scope-box .checkbox-field small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.student-search-form {
+  display: grid;
+  gap: 12px;
+}
+.student-search-results {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+.student-search-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #fff;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.student-search-result:hover {
+  border-color: #b8d0c0;
+  background: var(--green-50);
+  transform: translateX(2px);
+}
+.student-search-result > div {
+  min-width: 0;
+}
+.student-search-result strong {
+  display: block;
+  color: var(--ink);
+  font-size: 12px;
+}
+.student-search-result small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.student-search-result > span {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 8px;
+  background: #f0f4f1;
+  color: #5a6860;
+  font-size: 9px;
+  font-weight: 800;
+}
+.selected-student-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 13px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #bad3c2;
+  border-radius: 13px;
+  background: var(--green-50);
+}
+.selected-student-card strong {
+  display: block;
+  margin: 4px 0 2px;
+  color: var(--green-950);
+  font-size: 14px;
+}
+.selected-student-card small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.search-empty {
+  margin-top: 13px;
+  padding: 12px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 10px;
+  color: var(--muted);
+  background: #fafcfb;
+  font-size: 11px;
+}
+.search-hint {
+  margin: 3px 0 0;
+  font-size: 10px;
+}
+@media (max-width:700px) {
+  .student-search-result,
+  .selected-student-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
