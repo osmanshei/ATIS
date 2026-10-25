@@ -51,7 +51,7 @@ export default async function AdmissionLetterPage({
     <div className="letter-shell">
       <div className="letter-toolbar no-print">
         <Link className="button secondary" href="/admissions">Back</Link>
-        <PrintButton />
+        <PrintButton label="Print admission letter" />
       </div>
 
       <article className="letter-page">
