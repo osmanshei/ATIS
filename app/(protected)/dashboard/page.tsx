@@ -35,7 +35,10 @@ export default async function DashboardPage({
             <h1>Welcome back, {profile.full_name.split(" ")[0]}.</h1>
             <p>Your portal shows only the classes and subjects assigned to you.</p>
           </div>
-          <Link className="button hero-button" href="/teacher-assignments">View My Teaching</Link>
+          <div className="hero-actions">
+            <Link className="button hero-button" href="/attendance">Take Attendance</Link>
+            <Link className="button secondary hero-secondary" href="/teacher-assignments">My Teaching</Link>
+          </div>
         </section>
 
         {params.denied ? (
@@ -178,8 +181,8 @@ export default async function DashboardPage({
           <div className="eyebrow">Build progress</div>
           <h2 className="section-title">ATIS Web v0.4</h2>
           <p className="muted">
-            Role-specific teacher access and the interface refresh are now in place. Attendance,
-            assessments/results and finance are next.
+            Role-specific teacher access, the interface refresh and student attendance are now in place.
+            Assessments/results and finance are next.
           </p>
         </section>
       </div>
