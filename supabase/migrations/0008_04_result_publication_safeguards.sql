@@ -50,9 +50,6 @@ select
   st.last_name,
   a.ca_weight,
   a.exam_weight,
-  coalesce(cat.assessment_count,0) ca_assessment_count,
-  coalesce(cat.score_count,0) ca_score_count,
-  (et.score_id is not null) exam_entered,
   round(
     case when coalesce(cat.possible_total,0)=0 then 0
       else (coalesce(cat.raw_total,0)/cat.possible_total)*a.ca_weight
@@ -76,6 +73,9 @@ select
   gb.interpretation,
   gb.remark grade_remark,
   et.is_absent exam_absent,
+  coalesce(cat.assessment_count,0) ca_assessment_count,
+  coalesce(cat.score_count,0) ca_score_count,
+  (et.score_id is not null) exam_entered,
   (
     (
       a.ca_weight=0
