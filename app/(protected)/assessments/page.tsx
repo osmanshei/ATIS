@@ -37,8 +37,9 @@ export default async function AssessmentsPage({
         setupQuery,
         supabase
           .from("class_subject_summary")
-          .select("id,class_name,section,subject_name,subject_code,is_active")
+          .select("id,class_name,section,subject_name,subject_code,is_active,include_on_report")
           .eq("is_active", true)
+          .eq("include_on_report", true)
           .order("class_name")
           .order("subject_name"),
         supabase
