@@ -5,6 +5,22 @@ import { requireProfile } from "@/lib/auth";
 import { PrintButton } from "@/components/print-button";
 import { saveReportRemarkAction } from "../../actions";
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value + (value.length === 10 ? "T00:00:00Z" : ""));
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function money(value: number | string | null | undefined) {
+  return "GHS " + Number(value || 0).toFixed(2);
+}
+
 export default async function ReportCardPage({
   params,
   searchParams,
@@ -18,7 +34,9 @@ export default async function ReportCardPage({
 
   const { data: student } = await supabase
     .from("students")
-    .select("id,admission_number,first_name,middle_name,last_name,gender,class_id")
+    .select(
+      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,class_id,concession_percent",
+    )
     .eq("id", studentId)
     .single();
 
@@ -65,6 +83,7 @@ export default async function ReportCardPage({
     { data: publication },
     { data: classRows },
     { data: attendanceSessions },
+    { data: feeSummary },
   ] = await Promise.all([
     supabase
       .from("student_subject_results")
@@ -104,6 +123,14 @@ export default async function ReportCardPage({
       .eq("mode", "daily")
       .gte("attendance_date", term.starts_on)
       .lte("attendance_date", term.ends_on),
+    supabase
+      .from("student_fee_summary")
+      .select(
+        "gross_fees,concession_percent,concession_amount,net_fees,amount_paid,outstanding_balance",
+      )
+      .eq("student_id", studentId)
+      .eq("term_id", termId)
+      .maybeSingle(),
   ]);
 
   const sessionIds = (attendanceSessions || []).map((s: any) => s.id);
@@ -131,8 +158,10 @@ export default async function ReportCardPage({
   const completeCount = (subjectRows || []).filter((r: any) => r.result_complete).length;
   const allComplete = subjectCount > 0 && completeCount === subjectCount;
   const average = subjectRows?.length
-    ? (subjectRows || []).reduce((sum: number, row: any) => sum + Number(row.total_score || 0), 0) /
-      subjectRows.length
+    ? (subjectRows || []).reduce(
+        (sum: number, row: any) => sum + Number(row.total_score || 0),
+        0,
+      ) / subjectRows.length
     : 0;
 
   const grouped = new Map<string, { total: number; complete: number; count: number }>();
@@ -173,6 +202,7 @@ export default async function ReportCardPage({
   const classLabel = cls.class_name + (cls.section ? " / " + cls.section : "");
   const publicationStatus = publication?.status || "draft";
   const nextTermBegins = remarks?.next_term_begins || nextTerm?.starts_on || "";
+  const feesConfigured = Boolean(feeSummary);
 
   return (
     <>
@@ -183,7 +213,7 @@ export default async function ReportCardPage({
         >
           Back to class
         </Link>
-        <PrintButton />
+        <PrintButton label="Print report card" />
       </div>
 
       {query.ok ? <div className="notice success no-print">{query.ok}</div> : null}
@@ -196,7 +226,7 @@ export default async function ReportCardPage({
 
         <header className="report-header">
           <div className="report-logo">
-            <Image src="/atis-logo.svg" alt="ATIS" width={82} height={82} />
+            <Image src="/atis-logo.svg" alt="ATIS" width={74} height={74} />
           </div>
           <div>
             <h1>{school?.name || "AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL"}</h1>
@@ -207,11 +237,12 @@ export default async function ReportCardPage({
         </header>
 
         <section className="report-student-meta">
-          <div><span>Student</span><strong>{fullName}</strong></div>
+          <div className="wide"><span>Student</span><strong>{fullName}</strong></div>
           <div><span>Admission No.</span><strong>{student.admission_number || "—"}</strong></div>
           <div><span>Class</span><strong>{classLabel}</strong></div>
-          <div><span>Term</span><strong>{term.name}</strong></div>
+          <div><span>Date of Birth</span><strong>{formatDate(student.date_of_birth)}</strong></div>
           <div><span>Gender</span><strong>{student.gender || "—"}</strong></div>
+          <div><span>Term</span><strong>{term.name}</strong></div>
           <div><span>Position</span><strong>{allComplete && position ? position : "—"}</strong></div>
         </section>
 
@@ -244,29 +275,35 @@ export default async function ReportCardPage({
         </table>
 
         <section className="report-summary-grid">
+          <div><span>Overall Average</span><strong>{allComplete ? average.toFixed(1) + "%" : "Incomplete"}</strong></div>
+          <div><span>Attendance</span><strong>{attendanceRate}%</strong></div>
+          <div><span>Days Recorded</span><strong>{attendance.total}</strong></div>
+          <div><span>Absent / Late</span><strong>{attendance.absent} / {attendance.late}</strong></div>
+        </section>
+
+        <section className="report-finance-strip">
           <div>
-            <span>Overall Average</span>
-            <strong>{allComplete ? average.toFixed(1) + "%" : "Incomplete"}</strong>
+            <span>School Fees Payable</span>
+            <strong>{feesConfigured ? money(feeSummary.net_fees) : "Not configured"}</strong>
           </div>
           <div>
-            <span>Subjects Complete</span>
-            <strong>{completeCount} / {subjectCount}</strong>
+            <span>Concession</span>
+            <strong>
+              {feesConfigured
+                ? money(feeSummary.concession_amount) +
+                  (Number(feeSummary.concession_percent || 0) > 0
+                    ? " (" + Number(feeSummary.concession_percent).toFixed(0) + "%)"
+                    : "")
+                : "—"}
+            </strong>
           </div>
           <div>
-            <span>Attendance</span>
-            <strong>{attendanceRate}%</strong>
+            <span>Amount Paid</span>
+            <strong>{feesConfigured ? money(feeSummary.amount_paid) : "—"}</strong>
           </div>
-          <div>
-            <span>Days Recorded</span>
-            <strong>{attendance.total}</strong>
-          </div>
-          <div>
-            <span>Absent</span>
-            <strong>{attendance.absent}</strong>
-          </div>
-          <div>
-            <span>Late</span>
-            <strong>{attendance.late}</strong>
+          <div className="fee-balance">
+            <span>Outstanding Balance</span>
+            <strong>{feesConfigured ? money(feeSummary.outstanding_balance) : "—"}</strong>
           </div>
         </section>
 
@@ -285,7 +322,7 @@ export default async function ReportCardPage({
           </div>
           <div>
             <span>Next Term Begins</span>
-            <p>{nextTermBegins || "—"}</p>
+            <p>{formatDate(nextTermBegins)}</p>
           </div>
         </section>
 
