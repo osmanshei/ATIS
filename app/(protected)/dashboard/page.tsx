@@ -37,6 +37,7 @@ export default async function DashboardPage({
           </div>
           <div className="hero-actions">
             <Link className="button hero-button" href="/attendance">Take Attendance</Link>
+            <Link className="button secondary hero-secondary" href="/assessments">Enter Scores</Link>
             <Link className="button secondary hero-secondary" href="/teacher-assignments">My Teaching</Link>
           </div>
         </section>
@@ -153,6 +154,7 @@ export default async function DashboardPage({
         <div className="hero-actions">
           <Link className="button hero-button" href="/admissions">Admissions</Link>
           <Link className="button secondary hero-secondary" href="/staff">Staff</Link>
+          <Link className="button secondary hero-secondary" href="/results">Results</Link>
         </div>
       </section>
 
@@ -181,8 +183,8 @@ export default async function DashboardPage({
           <div className="eyebrow">Build progress</div>
           <h2 className="section-title">ATIS Web v0.4</h2>
           <p className="muted">
-            Role-specific teacher access, the interface refresh and student attendance are now in place.
-            Assessments/results and finance are next.
+            Role-specific teacher access, attendance, assessments, result computation and printable report cards are now in place.
+            Finance and deeper student/parent reporting are next.
           </p>
         </section>
       </div>
