@@ -18,7 +18,11 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           <h1>Students</h1>
           <p>Core student roster with class relationships enforced by PostgreSQL.</p>
         </div>
-        <span className="tag">{rows.length} loaded</span>
+        <div className="action-row">
+          <Link className="button" href="/students/new">Add Student</Link>
+          <Link className="button secondary" href="/bulk-onboarding">Bulk Onboarding</Link>
+          <span className="tag">{rows.length} loaded</span>
+        </div>
       </div>
       {params.ok ? <div className="notice success">{params.ok}</div> : null}
       {params.error ? <div className="notice error">{params.error}</div> : null}
