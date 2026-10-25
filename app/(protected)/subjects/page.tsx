@@ -44,13 +44,15 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Pro
       <section className="panel-section">
         <div className="section-heading"><div><div className="eyebrow">Report-card control</div><h2>Subject catalogue</h2></div></div>
         <div className="table-wrap"><table>
-          <thead><tr><th>Subject</th><th>Code</th><th>Current Use</th><th>Action</th></tr></thead>
+          <thead><tr><th>Subject</th><th>Code</th><th>Current Use</th><th>Actions</th></tr></thead>
           <tbody>
             {subjects.map((s)=><tr key={s.id}>
               <td><strong>{s.subject_name}</strong></td>
               <td>{s.subject_code}</td>
               <td><span className={s.include_on_report ? "tag" : "tag gray"}>{s.include_on_report ? "Report card" : "Timetable only"}</span></td>
               <td>
+                <div className="action-row">
+                <Link className="button secondary compact" href={"/subjects/" + s.id + "/edit"}>Edit</Link>
                 <form action={setSubjectReportFlagAction}>
                   <input type="hidden" name="subject_id" value={s.id} />
                   <input type="hidden" name="include_on_report" value={s.include_on_report ? "false" : "true"} />
@@ -58,6 +60,7 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Pro
                     {s.include_on_report ? "Make timetable only" : "Include on report"}
                   </button>
                 </form>
+                </div>
               </td>
             </tr>)}
           </tbody>
