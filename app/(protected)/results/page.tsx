@@ -67,10 +67,11 @@ export default async function ResultsPage({
           {(setups || []).map((setup: any) => {
             const resultRows = rowsBySetup.get(setup.id) || [];
             const completed = resultRows.filter((r) => r.result_complete).length;
-            const average = resultRows.length
+            const completedRows = resultRows.filter((r) => r.result_complete);
+            const average = completedRows.length
               ? Math.round(
-                  (resultRows.reduce((sum, r) => sum + Number(r.total_score || 0), 0) /
-                    resultRows.length) *
+                  (completedRows.reduce((sum, r) => sum + Number(r.total_score || 0), 0) /
+                    completedRows.length) *
                     10,
                 ) / 10
               : 0;
