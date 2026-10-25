@@ -41,7 +41,13 @@ export async function provisionStudentPortalAction(
     return {
       ok: true,
       message: "Student portal credentials are ready.",
-      ...result,
+      fullName: result.fullName,
+      username: result.username,
+      temporaryPassword: result.temporaryPassword,
+      smsSent: result.smsSent,
+      emailSent: result.emailSent,
+      smsReason: result.smsReason,
+      emailReason: result.emailReason,
     };
   } catch (error) {
     return {
@@ -68,7 +74,13 @@ export async function provisionGuardianPortalAction(
     return {
       ok: true,
       message: "Parent portal credentials are ready.",
-      ...result,
+      fullName: result.fullName,
+      username: result.username,
+      temporaryPassword: result.temporaryPassword,
+      smsSent: result.smsSent,
+      emailSent: result.emailSent,
+      smsReason: result.smsReason,
+      emailReason: result.emailReason,
     };
   } catch (error) {
     return {

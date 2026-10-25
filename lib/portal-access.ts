@@ -15,6 +15,20 @@ function validEmail(value: string | null | undefined) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
 }
 
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs = 3500,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function usableAuthEmail(
   admin: SupabaseClient,
   preferred: string,
@@ -40,7 +54,6 @@ async function sendCredentials(args: {
   email?: string | null;
   accountLabel: string;
 }) {
-  const result = { smsSent: false, emailSent: false, smsReason: "", emailReason: "" };
   const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "";
   const loginUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
@@ -51,11 +64,14 @@ async function sendCredentials(args: {
     "Username: " + args.username + ". Temporary password: " +
     args.temporaryPassword + ". Please change it after signing in.";
 
-  const smsKey = process.env.SMS_ONLINE_GHANA_API_KEY || "";
-  const phone = normalizeGhanaPhone(args.mobile);
-  if (smsKey && phone) {
+  const sendSms = async () => {
+    const smsKey = process.env.SMS_ONLINE_GHANA_API_KEY || "";
+    const phone = normalizeGhanaPhone(args.mobile);
+    if (!smsKey) return { sent: false, reason: "SMS API is not configured." };
+    if (!phone) return { sent: false, reason: "No valid Ghana mobile number." };
+
     try {
-      const response = await fetch(SMS_BASE + "/message/sms/send", {
+      const response = await fetchWithTimeout(SMS_BASE + "/message/sms/send", {
         method: "POST",
         headers: {
           Accept: "application/json",
@@ -77,20 +93,30 @@ async function sendCredentials(args: {
         Number(body.handshake.id) === 0 &&
         String(body.handshake.label || "") === "HSHK_OK";
       if (!ok) throw new Error(body?.handshake?.label || "HTTP " + response.status);
-      result.smsSent = true;
+      return { sent: true, reason: "" };
     } catch (error) {
-      result.smsReason = error instanceof Error ? error.message : "SMS delivery failed.";
+      const reason =
+        error instanceof Error && error.name === "AbortError"
+          ? "SMS provider did not respond quickly enough. Credentials are still valid."
+          : error instanceof Error
+            ? error.message
+            : "SMS delivery failed.";
+      return { sent: false, reason };
     }
-  } else {
-    result.smsReason = smsKey ? "No valid Ghana mobile number." : "SMS API is not configured.";
-  }
+  };
 
-  const email = validEmail(args.email);
-  const resendKey = process.env.RESEND_API_KEY || "";
-  const from = process.env.ATIS_EMAIL_FROM || "";
-  if (email && resendKey && from) {
+  const sendEmail = async () => {
+    const email = validEmail(args.email);
+    const resendKey = process.env.RESEND_API_KEY || "";
+    const from = process.env.ATIS_EMAIL_FROM || "";
+
+    if (!email) return { sent: false, reason: "No usable email address is recorded." };
+    if (!resendKey || !from) {
+      return { sent: false, reason: "Email delivery is not configured." };
+    }
+
     try {
-      const response = await fetch("https://api.resend.com/emails", {
+      const response = await fetchWithTimeout("https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: "Bearer " + resendKey,
@@ -111,17 +137,82 @@ async function sendCredentials(args: {
       });
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message || "HTTP " + response.status);
-      result.emailSent = true;
+      return { sent: true, reason: "" };
     } catch (error) {
-      result.emailReason = error instanceof Error ? error.message : "Email delivery failed.";
+      const reason =
+        error instanceof Error && error.name === "AbortError"
+          ? "Email provider did not respond quickly enough. Credentials are still valid."
+          : error instanceof Error
+            ? error.message
+            : "Email delivery failed.";
+      return { sent: false, reason };
     }
-  } else {
-    result.emailReason = email
-      ? "Email delivery is not configured."
-      : "No usable email address is recorded.";
+  };
+
+  // Delivery must never hold the account transaction indefinitely.
+  // SMS and email are attempted in parallel and both have short timeouts.
+  const [sms, email] = await Promise.all([sendSms(), sendEmail()]);
+
+  return {
+    smsSent: sms.sent,
+    emailSent: email.sent,
+    smsReason: sms.reason,
+    emailReason: email.reason,
+  };
+}
+
+async function ensureLinkedPortalProfile(
+  admin: SupabaseClient,
+  args: {
+    userId: string;
+    schoolId: string;
+    role: "student" | "parent";
+    fullName: string;
+    mobile?: string | null;
+    preferredUsername?: string | null;
+  },
+) {
+  const { data: existing } = await admin
+    .from("profiles")
+    .select("username,email")
+    .eq("user_id", args.userId)
+    .maybeSingle();
+
+  if (existing) return existing;
+
+  const { data: authData, error: authError } = await admin.auth.admin.getUserById(args.userId);
+  if (authError || !authData.user) {
+    throw new Error("The linked Auth account could not be found.");
   }
 
-  return result;
+  const username = await generateUniqueUsername(
+    admin,
+    args.fullName,
+    args.preferredUsername || undefined,
+  );
+  const authEmail =
+    authData.user.email ||
+    (await usableAuthEmail(
+      admin,
+      "",
+      username,
+      args.role === "parent" ? "parents" : "students",
+    ));
+
+  const { error: profileError } = await admin.from("profiles").insert({
+    user_id: args.userId,
+    school_id: args.schoolId,
+    username,
+    full_name: args.fullName,
+    email: authEmail,
+    mobile: args.mobile || null,
+    role: args.role,
+    status: "active",
+    must_change_password: true,
+  });
+  if (profileError) throw profileError;
+
+  return { username, email: authEmail };
 }
 
 export async function provisionStudentPortalLogin(
@@ -147,12 +238,13 @@ export async function provisionStudentPortalLogin(
   let authEmail = "";
 
   if (userId) {
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("username,email")
-      .eq("user_id", userId)
-      .single();
-    if (!profile) throw new Error("The student Auth link exists but its profile is missing.");
+    const profile = await ensureLinkedPortalProfile(admin, {
+      userId,
+      schoolId: args.schoolId,
+      role: "student",
+      fullName,
+      preferredUsername: String(student.admission_number || ""),
+    });
     username = profile.username;
     authEmail = profile.email;
 
@@ -266,12 +358,13 @@ export async function provisionGuardianPortalLogin(
   let authEmail = "";
 
   if (userId) {
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("username,email")
-      .eq("user_id", userId)
-      .single();
-    if (!profile) throw new Error("The guardian Auth link exists but its profile is missing.");
+    const profile = await ensureLinkedPortalProfile(admin, {
+      userId,
+      schoolId: args.schoolId,
+      role: "parent",
+      fullName,
+      mobile: guardian.mobile,
+    });
     username = profile.username;
     authEmail = profile.email;
 
