@@ -33,6 +33,7 @@ function NavIcon({ code }: { code: string }) {
     AS: <svg {...common}><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h5M8 16h3"/><path d="m15 15 2 2 3-4"/></svg>,
     RS: <svg {...common}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
     FI: <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5c-.8-.8-2-1.2-3.4-1.2-1.9 0-3.1.9-3.1 2.2 0 1.4 1.2 1.9 3.2 2.3 2 .4 3.1.9 3.1 2.4 0 1.4-1.3 2.5-3.4 2.5-1.5 0-2.8-.5-3.7-1.4M12 5.5v13"/></svg>,
+    PO: <svg {...common}><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><circle cx="12" cy="13" r="2.2"/><path d="M8.5 20c.4-2.6 1.6-4 3.5-4s3.1 1.4 3.5 4"/></svg>,
     AC: <svg {...common}><circle cx="12" cy="8" r="3"/><path d="M5 21c.8-4.5 3.1-6.5 7-6.5s6.2 2 7 6.5"/></svg>,
   };
 

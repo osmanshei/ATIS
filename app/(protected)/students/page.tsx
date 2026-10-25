@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 
 export default async function StudentsPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
   const params = await searchParams;
   const { data, error } = await supabase
     .from("students")
@@ -39,7 +39,14 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
                 <td>{r.date_of_birth || "—"}</td>
                 <td>{r.classes ? `${r.classes.class_name}${r.classes.section ? ` / ${r.classes.section}` : ""}` : "Unassigned"}</td>
                 <td><span className="tag gray">{r.status}</span></td>
-                <td><Link className="button secondary compact" href={"/students/" + r.id + "/edit"}>Edit</Link></td>
+                <td>
+                  <div className="action-row">
+                    <Link className="button secondary compact" href={"/students/" + r.id + "/edit"}>Edit</Link>
+                    {profile.role === "admin" ? (
+                      <Link className="button secondary compact" href={"/students/" + r.id + "/access"}>Portal Access</Link>
+                    ) : null}
+                  </div>
+                </td>
               </tr>
             ))}
             {!rows.length ? <tr><td colSpan={7} className="muted">No students have been migrated yet.</td></tr> : null}

@@ -67,6 +67,11 @@ export default async function NewStudentPage({
           </div>
           <div className="field"><label>Date of birth</label><input name="date_of_birth" type="date" /></div>
           <div className="field"><label>Admission date</label><input name="admission_date" type="date" /></div>
+          <div className="field">
+            <label>Student photo</label>
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
+            <small className="muted">Optional. JPG, PNG or WebP, maximum 5 MB.</small>
+          </div>
         </div>
 
         <h2 className="section-title">Primary guardian</h2>

@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { updateStudentAction } from "../../actions";
+import { removeStudentPhotoAction, updateStudentAction } from "../../actions";
+import { signedStudentPhotoUrl } from "@/lib/student-photo";
 
 export default async function EditStudentPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
 
   const [{ data: student }, { data: classes }] = await Promise.all([
     supabase.from("students").select("*").eq("id", id).single(),
@@ -24,6 +25,7 @@ export default async function EditStudentPage({
   ]);
 
   if (!student) notFound();
+  const photoUrl = await signedStudentPhotoUrl(supabase, student.photo_url);
 
   return (
     <>
@@ -33,10 +35,37 @@ export default async function EditStudentPage({
           <h1>Edit Student</h1>
           <p>{[student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ")} · {student.admission_number || "No admission number"}</p>
         </div>
-        <Link className="button secondary" href="/students">Back to students</Link>
+        <div className="action-row">
+          {profile.role === "admin" ? (
+            <Link className="button" href={"/students/" + student.id + "/access"}>Portal Access</Link>
+          ) : null}
+          <Link className="button secondary" href="/students">Back to students</Link>
+        </div>
       </div>
 
+      {query.ok ? <div className="notice success">{query.ok}</div> : null}
       {query.error ? <div className="notice error">{query.error}</div> : null}
+
+      <section className="student-photo-editor">
+        <div className="student-photo-preview">
+          {photoUrl ? (
+            <img src={photoUrl} alt="Student" />
+          ) : (
+            <span>{String(student.first_name || "?").slice(0, 1).toUpperCase()}</span>
+          )}
+        </div>
+        <div>
+          <div className="eyebrow">Student picture</div>
+          <h2 className="section-title">{photoUrl ? "Picture on file" : "No picture uploaded"}</h2>
+          <p className="muted">Upload a new picture below to replace the current one.</p>
+          {photoUrl ? (
+            <form action={removeStudentPhotoAction}>
+              <input type="hidden" name="student_id" value={student.id} />
+              <button className="button secondary compact" type="submit">Remove Picture</button>
+            </form>
+          ) : null}
+        </div>
+      </section>
 
       <form className="form-card" action={updateStudentAction}>
         <input type="hidden" name="student_id" value={student.id} />
@@ -92,6 +121,11 @@ export default async function EditStudentPage({
           <div className="field"><label>Admission type</label><input name="admission_type" defaultValue={student.admission_type || ""} /></div>
           <div className="field"><label>Fee concession (%)</label><input name="concession_percent" type="number" min="0" max="100" step="0.01" defaultValue={student.concession_percent ?? 0} /></div>
           <div className="field"><label>Transport route</label><input name="transport_route" defaultValue={student.transport_route || ""} /></div>
+          <div className="field">
+            <label>Replace student photo</label>
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
+            <small className="muted">JPG, PNG or WebP, maximum 5 MB.</small>
+          </div>
         </div>
         <label className="checkbox-field"><input name="transport_required" type="checkbox" defaultChecked={Boolean(student.transport_required)} /> Transport required</label>
 

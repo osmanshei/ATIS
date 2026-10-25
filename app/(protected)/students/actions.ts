@@ -3,14 +3,24 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
+import {
+  removeStudentPhoto,
+  studentPhotoValidationError,
+  uploadStudentPhoto,
+} from "@/lib/student-photo";
 
 function value(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
 }
 
 export async function updateStudentAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
   const studentId = value(formData, "student_id");
+  const photo = formData.get("photo");
+  const photoError = studentPhotoValidationError(photo);
+  if (photoError) {
+    redirect("/students/" + studentId + "/edit?error=" + encodeURIComponent(photoError));
+  }
 
   const payload = {
     admission_number: value(formData, "admission_number"),
@@ -49,6 +59,24 @@ export async function updateStudentAction(formData: FormData) {
     redirect("/students/" + studentId + "/edit?error=" + encodeURIComponent(error.message));
   }
 
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      await uploadStudentPhoto(supabase, {
+        schoolId: profile.school_id,
+        studentId,
+        file: photo,
+      });
+    } catch (photoUploadError) {
+      redirect(
+        "/students/" + studentId + "/edit?error=" +
+          encodeURIComponent(
+            "Student details were saved, but the photo could not be uploaded: " +
+              (photoUploadError instanceof Error ? photoUploadError.message : "Unknown error"),
+          ),
+      );
+    }
+  }
+
   revalidatePath("/students");
   revalidatePath("/students/" + studentId + "/edit");
   revalidatePath("/finance");
@@ -58,7 +86,12 @@ export async function updateStudentAction(formData: FormData) {
 
 
 export async function createStudentAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const photo = formData.get("photo");
+  const photoError = studentPhotoValidationError(photo);
+  if (photoError) {
+    redirect("/students/new?error=" + encodeURIComponent(photoError));
+  }
 
   const admissionNumber = value(formData, "admission_number");
   const firstName = value(formData, "first_name");
@@ -118,6 +151,31 @@ export async function createStudentAction(formData: FormData) {
     );
   }
 
+  const { data: createdStudent } = await supabase
+    .from("students")
+    .select("id")
+    .eq("school_id", profile.school_id)
+    .eq("admission_number", admissionNumber)
+    .maybeSingle();
+
+  if (createdStudent && photo instanceof File && photo.size > 0) {
+    try {
+      await uploadStudentPhoto(supabase, {
+        schoolId: profile.school_id,
+        studentId: createdStudent.id,
+        file: photo,
+      });
+    } catch (photoUploadError) {
+      redirect(
+        "/students/" + createdStudent.id + "/edit?error=" +
+          encodeURIComponent(
+            "Student was added, but the photo could not be uploaded: " +
+              (photoUploadError instanceof Error ? photoUploadError.message : "Unknown error"),
+          ),
+      );
+    }
+  }
+
   revalidatePath("/students");
   revalidatePath("/dashboard");
   revalidatePath("/classes");
@@ -125,4 +183,41 @@ export async function createStudentAction(formData: FormData) {
   revalidatePath("/finance/balances");
 
   redirect("/students?ok=" + encodeURIComponent("Student added successfully."));
+}
+
+
+export async function removeStudentPhotoAction(formData: FormData) {
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const studentId = value(formData, "student_id");
+
+  const { data: student, error } = await supabase
+    .from("students")
+    .select("id,photo_url")
+    .eq("id", studentId)
+    .eq("school_id", profile.school_id)
+    .single();
+
+  if (error || !student) {
+    redirect("/students?error=" + encodeURIComponent("Student record not found."));
+  }
+
+  try {
+    await removeStudentPhoto(supabase, {
+      schoolId: profile.school_id,
+      studentId,
+      photoPath: student.photo_url,
+    });
+  } catch (removeError) {
+    redirect(
+      "/students/" + studentId + "/edit?error=" +
+        encodeURIComponent(
+          removeError instanceof Error ? removeError.message : "Could not remove student photo.",
+        ),
+    );
+  }
+
+  revalidatePath("/students");
+  revalidatePath("/students/" + studentId + "/edit");
+  revalidatePath("/results");
+  redirect("/students/" + studentId + "/edit?ok=" + encodeURIComponent("Student photo removed."));
 }

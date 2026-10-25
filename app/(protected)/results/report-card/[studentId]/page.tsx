@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { PrintButton } from "@/components/print-button";
 import { saveReportRemarkAction } from "../../actions";
+import { signedStudentPhotoUrl } from "@/lib/student-photo";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -35,7 +36,7 @@ export default async function ReportCardPage({
   const { data: student } = await supabase
     .from("students")
     .select(
-      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,class_id,concession_percent",
+      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,class_id,concession_percent,photo_url",
     )
     .eq("id", studentId)
     .single();
@@ -202,6 +203,7 @@ export default async function ReportCardPage({
   const classLabel = cls.class_name + (cls.section ? " / " + cls.section : "");
   const publicationStatus = publication?.status || "draft";
   const nextTermBegins = remarks?.next_term_begins || nextTerm?.starts_on || "";
+  const studentPhotoUrl = await signedStudentPhotoUrl(supabase, student.photo_url);
 
   return (
     <>
@@ -235,7 +237,15 @@ export default async function ReportCardPage({
           </div>
         </header>
 
-        <section className="report-student-meta">
+        <section className="report-student-block">
+          <div className="report-student-photo">
+            {studentPhotoUrl ? (
+              <img src={studentPhotoUrl} alt={fullName} />
+            ) : (
+              <span>{fullName.slice(0, 1).toUpperCase()}</span>
+            )}
+          </div>
+          <section className="report-student-meta">
           <div className="wide"><span>Student</span><strong>{fullName}</strong></div>
           <div><span>Admission No.</span><strong>{student.admission_number || "—"}</strong></div>
           <div><span>Class</span><strong>{classLabel}</strong></div>
@@ -243,6 +253,7 @@ export default async function ReportCardPage({
           <div><span>Gender</span><strong>{student.gender || "—"}</strong></div>
           <div><span>Term</span><strong>{term.name}</strong></div>
           <div><span>Position</span><strong>{allComplete && position ? position : "—"}</strong></div>
+          </section>
         </section>
 
         <table className="report-results-table">

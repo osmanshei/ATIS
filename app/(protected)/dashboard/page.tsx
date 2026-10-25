@@ -99,6 +99,41 @@ export default async function DashboardPage({
     );
   }
 
+  if (profile.role === "student" || profile.role === "parent") {
+    return (
+      <>
+        <section className="welcome-hero portal-hero">
+          <div>
+            <div className="eyebrow">{profile.role === "parent" ? "Parent portal" : "Student portal"} · {year?.name || "Current academic year"}</div>
+            <h1>Welcome, {profile.full_name.split(" ")[0]}.</h1>
+            <p>
+              {profile.role === "parent"
+                ? "View your linked child or children, published results, attendance and school-fee account."
+                : "View your published results, attendance and school-fee account."}
+            </p>
+          </div>
+          <div className="hero-actions">
+            <Link className="button hero-button" href="/portal">Open My Portal</Link>
+            <Link className="button secondary hero-secondary" href="/account">My Account</Link>
+          </div>
+        </section>
+        {params.denied ? <div className="notice">That area is not available to your portal account.</div> : null}
+        <div className="grid-2">
+          <Link className="card dashboard-link-card" href="/portal">
+            <div className="eyebrow">School information</div>
+            <h2 className="section-title">Results, attendance & fees</h2>
+            <p className="muted">One secure view of the student information available to this account.</p>
+          </Link>
+          <Link className="card dashboard-link-card" href="/account">
+            <div className="eyebrow">Security</div>
+            <h2 className="section-title">Account & password</h2>
+            <p className="muted">Review your login details and change your password.</p>
+          </Link>
+        </div>
+      </>
+    );
+  }
+
   if (profile.role === "accountant") {
     return (
       <>
@@ -213,10 +248,10 @@ export default async function DashboardPage({
         </section>
         <section className="card">
           <div className="eyebrow">Build progress</div>
-          <h2 className="section-title">ATIS Web v0.7.3</h2>
+          <h2 className="section-title">ATIS Web v0.8.0</h2>
           <p className="muted">
             Role-specific teacher access, attendance, assessments, report cards and the core Finance module are now in place.
-            Parent/student self-service, timetable, communications and advanced HR/operations remain.
+            Parent/student self-service and private student photos are now included. Timetable, communications and advanced HR/operations remain.
           </p>
         </section>
       </div>

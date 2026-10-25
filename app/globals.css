@@ -1969,3 +1969,172 @@ tbody tr:hover { background: #fbfdfb; }
 @media (max-width:700px) {
   .credential-grid { grid-template-columns:1fr; }
 }
+
+
+/* ATIS v0.8 portal and student photos */
+.student-photo-editor {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.student-photo-preview,
+.portal-photo,
+.report-student-photo {
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: var(--green-100);
+  color: var(--green-900);
+  border: 1px solid #cbded1;
+  font-weight: 900;
+}
+.student-photo-preview {
+  width: 112px;
+  height: 132px;
+  border-radius: 14px;
+  font-size: 34px;
+}
+.student-photo-preview img,
+.portal-photo img,
+.report-student-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.portal-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.portal-photo {
+  width: 94px;
+  height: 108px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.95);
+  color: var(--green-900);
+  font-size: 30px;
+}
+.portal-filter-card {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.portal-filter-card .field {
+  margin: 0;
+  min-width: 210px;
+}
+.portal-remarks,
+.portal-finance-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.portal-remarks > div,
+.portal-finance-grid > div {
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafcfb;
+}
+.portal-remarks span,
+.portal-finance-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .055em;
+}
+.portal-remarks strong,
+.portal-finance-grid strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.portal-subheading {
+  margin: 18px 0 8px;
+  font-size: 12px;
+}
+.guardian-access-list {
+  display: grid;
+  gap: 8px;
+}
+.guardian-access-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafcfb;
+}
+.guardian-access-row strong,
+.guardian-access-row small {
+  display: block;
+}
+.guardian-access-row small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.portal-credentials {
+  margin-top: 12px;
+}
+.report-student-block {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  gap: 10px;
+  align-items: stretch;
+  margin: 10px 0;
+}
+.report-student-photo {
+  width: 68px;
+  min-height: 76px;
+  border-radius: 6px;
+  font-size: 20px;
+}
+.report-student-meta {
+  margin: 0 !important;
+}
+@media (max-width:700px) {
+  .student-photo-editor,
+  .portal-identity,
+  .portal-filter-card,
+  .guardian-access-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .portal-filter-card .field { width:100%; min-width:0; }
+  .portal-remarks,
+  .portal-finance-grid { grid-template-columns:1fr; }
+  .report-student-block { grid-template-columns:1fr; }
+  .report-student-photo { width:72px; height:82px; min-height:82px; }
+}
+@media print {
+  .report-student-block {
+    grid-template-columns: 16mm 1fr;
+    gap: 2.5mm;
+    margin: 2.5mm 0;
+  }
+  .report-student-photo {
+    width: 16mm;
+    height: 19mm;
+    min-height: 19mm;
+  }
+}
