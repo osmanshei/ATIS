@@ -1,7 +1,7 @@
 import { requireProfile } from "@/lib/auth";
 
 export default async function StudentsPage() {
-  const { supabase } = await requireProfile(["admin", "supervisor", "teacher", "clerk"]);
+  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
   const { data, error } = await supabase
     .from("students")
     .select("id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,status,classes(class_name,section)")
