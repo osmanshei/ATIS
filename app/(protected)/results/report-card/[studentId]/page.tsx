@@ -202,7 +202,6 @@ export default async function ReportCardPage({
   const classLabel = cls.class_name + (cls.section ? " / " + cls.section : "");
   const publicationStatus = publication?.status || "draft";
   const nextTermBegins = remarks?.next_term_begins || nextTerm?.starts_on || "";
-  const feesConfigured = Boolean(feeSummary);
 
   return (
     <>
@@ -284,12 +283,12 @@ export default async function ReportCardPage({
         <section className="report-finance-strip">
           <div>
             <span>School Fees Payable</span>
-            <strong>{feesConfigured ? money(feeSummary.net_fees) : "Not configured"}</strong>
+            <strong>{feeSummary ? money(feeSummary.net_fees) : "Not configured"}</strong>
           </div>
           <div>
             <span>Concession</span>
             <strong>
-              {feesConfigured
+              {feeSummary
                 ? money(feeSummary.concession_amount) +
                   (Number(feeSummary.concession_percent || 0) > 0
                     ? " (" + Number(feeSummary.concession_percent).toFixed(0) + "%)"
@@ -299,11 +298,11 @@ export default async function ReportCardPage({
           </div>
           <div>
             <span>Amount Paid</span>
-            <strong>{feesConfigured ? money(feeSummary.amount_paid) : "—"}</strong>
+            <strong>{feeSummary ? money(feeSummary.amount_paid) : "—"}</strong>
           </div>
           <div className="fee-balance">
             <span>Outstanding Balance</span>
-            <strong>{feesConfigured ? money(feeSummary.outstanding_balance) : "—"}</strong>
+            <strong>{feeSummary ? money(feeSummary.outstanding_balance) : "—"}</strong>
           </div>
         </section>
 
