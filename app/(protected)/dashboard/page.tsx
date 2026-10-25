@@ -213,7 +213,7 @@ export default async function DashboardPage({
         </section>
         <section className="card">
           <div className="eyebrow">Build progress</div>
-          <h2 className="section-title">ATIS Web v0.7.2</h2>
+          <h2 className="section-title">ATIS Web v0.7.3</h2>
           <p className="muted">
             Role-specific teacher access, attendance, assessments, report cards and the core Finance module are now in place.
             Parent/student self-service, timetable, communications and advanced HR/operations remain.
