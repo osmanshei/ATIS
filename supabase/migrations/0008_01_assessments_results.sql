@@ -249,10 +249,12 @@ grant select on table
   public.report_remarks,public.result_publications
 to authenticated;
 
+drop policy if exists grade_schemes_read on public.grade_schemes;
 create policy grade_schemes_read on public.grade_schemes
 for select to authenticated
 using (school_id=(select public.current_school_id()));
 
+drop policy if exists grade_bands_read on public.grade_bands;
 create policy grade_bands_read on public.grade_bands
 for select to authenticated
 using (
@@ -262,6 +264,7 @@ using (
   )
 );
 
+drop policy if exists assessment_setups_read on public.assessment_setups;
 create policy assessment_setups_read on public.assessment_setups
 for select to authenticated
 using (
@@ -269,6 +272,7 @@ using (
   and public.can_manage_assessment_setup(id)
 );
 
+drop policy if exists ca_assessments_read on public.ca_assessments;
 create policy ca_assessments_read on public.ca_assessments
 for select to authenticated
 using (
@@ -276,6 +280,7 @@ using (
   and public.can_manage_assessment_setup(setup_id)
 );
 
+drop policy if exists ca_scores_read on public.ca_scores;
 create policy ca_scores_read on public.ca_scores
 for select to authenticated
 using (
@@ -287,6 +292,7 @@ using (
   )
 );
 
+drop policy if exists exam_scores_read on public.exam_scores;
 create policy exam_scores_read on public.exam_scores
 for select to authenticated
 using (
@@ -294,6 +300,7 @@ using (
   and public.can_manage_assessment_setup(setup_id)
 );
 
+drop policy if exists report_remarks_read on public.report_remarks;
 create policy report_remarks_read on public.report_remarks
 for select to authenticated
 using (
@@ -307,6 +314,7 @@ using (
   )
 );
 
+drop policy if exists result_publications_read on public.result_publications;
 create policy result_publications_read on public.result_publications
 for select to authenticated
 using (
