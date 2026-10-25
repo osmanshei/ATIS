@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { updateFeeItemAction } from "../../actions";
+import { updateFeeItemAction } from "../../../actions";
 
 function money(value: number | string | null | undefined) {
   return "GHS " + Number(value || 0).toFixed(2);
