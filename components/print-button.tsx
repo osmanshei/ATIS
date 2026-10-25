@@ -1,9 +1,9 @@
 "use client";
 
-export function PrintButton() {
+export function PrintButton({ label = "Print" }: { label?: string }) {
   return (
     <button className="button no-print" type="button" onClick={() => window.print()}>
-      Print admission letter
+      {label}
     </button>
   );
 }
