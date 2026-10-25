@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 
 export default async function DashboardPage({
@@ -8,55 +9,177 @@ export default async function DashboardPage({
   const { supabase, profile } = await requireProfile();
   const params = await searchParams;
 
-  const [students, staff, classes, subjects, admissions, yearResult] = await Promise.all([
+  const { data: year } = await supabase
+    .from("academic_years")
+    .select("name")
+    .eq("is_current", true)
+    .maybeSingle();
+
+  if (profile.role === "teacher") {
+    const { data: assignments } = await supabase
+      .from("teacher_assignment_summary")
+      .select("id,class_name,section,subject_name,subject_code,is_class_teacher,periods_per_week")
+      .order("class_name")
+      .order("subject_name");
+
+    const rows = (assignments || []) as any[];
+    const classCount = new Set(rows.map((r) => `${r.class_name}|${r.section || ""}`)).size;
+    const subjectCount = new Set(rows.map((r) => r.subject_code || r.subject_name)).size;
+    const periods = rows.reduce((sum, r) => sum + Number(r.periods_per_week || 0), 0);
+
+    return (
+      <>
+        <section className="welcome-hero">
+          <div>
+            <div className="eyebrow">Teacher workspace · {year?.name || "Current academic year"}</div>
+            <h1>Welcome back, {profile.full_name.split(" ")[0]}.</h1>
+            <p>Your portal shows only the classes and subjects assigned to you.</p>
+          </div>
+          <Link className="button hero-button" href="/teacher-assignments">View My Teaching</Link>
+        </section>
+
+        {params.denied ? (
+          <div className="notice">That area is not available to your teacher account.</div>
+        ) : null}
+
+        <div className="teacher-summary-grid">
+          <div className="metric-card">
+            <span className="metric-kicker">My classes</span>
+            <strong>{classCount}</strong>
+            <small>Classes assigned to your teaching load</small>
+          </div>
+          <div className="metric-card">
+            <span className="metric-kicker">My subjects</span>
+            <strong>{subjectCount}</strong>
+            <small>Distinct subjects assigned to you</small>
+          </div>
+          <div className="metric-card">
+            <span className="metric-kicker">Periods / week</span>
+            <strong>{periods || "—"}</strong>
+            <small>Total configured teaching periods</small>
+          </div>
+        </div>
+
+        <section className="panel-section">
+          <div className="section-heading">
+            <div>
+              <div className="eyebrow">Teaching load</div>
+              <h2>My current assignments</h2>
+            </div>
+            <Link className="text-link" href="/teacher-assignments">See all assignments →</Link>
+          </div>
+
+          <div className="assignment-grid">
+            {rows.slice(0, 6).map((row) => (
+              <article className="assignment-card" key={row.id}>
+                <div className="assignment-class">
+                  {row.class_name}{row.section ? ` / ${row.section}` : ""}
+                </div>
+                <h3>{row.subject_name}</h3>
+                <div className="assignment-meta">
+                  <span>{row.subject_code}</span>
+                  <span>{row.periods_per_week ? `${row.periods_per_week} periods/week` : "Periods not set"}</span>
+                </div>
+                {row.is_class_teacher ? <span className="tag">Class teacher</span> : null}
+              </article>
+            ))}
+            {!rows.length ? (
+              <div className="empty-state">
+                <strong>No teaching assignments yet</strong>
+                <p>Management has not linked any class-subject assignments to your account.</p>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </>
+    );
+  }
+
+  if (profile.role === "staff" || profile.role === "accountant") {
+    return (
+      <>
+        <section className="welcome-hero">
+          <div>
+            <div className="eyebrow">{profile.role} workspace · {year?.name || "Current academic year"}</div>
+            <h1>Welcome, {profile.full_name.split(" ")[0]}.</h1>
+            <p>Your ATIS account is ready. More role-specific tools will appear here as they are enabled.</p>
+          </div>
+          <Link className="button hero-button" href="/account">My Account</Link>
+        </section>
+        {params.denied ? <div className="notice">That area is not available to your account.</div> : null}
+        <div className="grid-2">
+          <section className="card">
+            <div className="eyebrow">Account</div>
+            <h2 className="section-title">Profile & security</h2>
+            <p className="muted">Review your login details and change your password from My Account.</p>
+          </section>
+          <section className="card">
+            <div className="eyebrow">ATIS</div>
+            <h2 className="section-title">Role-based workspace</h2>
+            <p className="muted">You only see modules authorized for your staff role.</p>
+          </section>
+        </div>
+      </>
+    );
+  }
+
+  const [students, staff, classes, subjects, admissions] = await Promise.all([
     supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("staff").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("classes").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("subject_catalogue").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("admissions").select("id", { count: "exact", head: true }).in("status", ["registered", "under_review", "admitted"]),
-    supabase.from("academic_years").select("name").eq("is_current", true).maybeSingle(),
   ]);
 
   const stats = [
-    ["Active students", students.count ?? 0, "Count comes from actual student rows"],
-    ["Active staff", staff.count ?? 0, "Teaching and non-teaching staff"],
-    ["Classes", classes.count ?? 0, "Optional sections remain supported"],
+    ["Active students", students.count ?? 0, "Live student records"],
+    ["Active staff", staff.count ?? 0, "Teaching and non-teaching"],
+    ["Classes", classes.count ?? 0, "Current academic structure"],
     ["Subjects", subjects.count ?? 0, "Master subject catalogue"],
-    ["Open admissions", admissions.count ?? 0, "Registered, under review or admitted"],
+    ["Open admissions", admissions.count ?? 0, "Awaiting completion"],
   ];
 
   return (
     <>
-      <div className="page-head">
+      <section className="welcome-hero admin-hero">
         <div>
-          <h1>Dashboard</h1>
-          <p>Welcome, {profile.full_name}. Academic year: {yearResult.data?.name || "Not configured"}</p>
+          <div className="eyebrow">Management workspace · {year?.name || "Current academic year"}</div>
+          <h1>Good to see you, {profile.full_name.split(" ")[0]}.</h1>
+          <p>Monitor the school, manage people and keep academic records moving from one workspace.</p>
         </div>
-      </div>
+        <div className="hero-actions">
+          <Link className="button hero-button" href="/admissions">Admissions</Link>
+          <Link className="button secondary hero-secondary" href="/staff">Staff</Link>
+        </div>
+      </section>
+
       {params.denied ? <div className="notice">Your account does not have permission for that area.</div> : null}
+
       <div className="cards cards-five">
         {stats.map(([label, value, note]) => (
-          <div className="card" key={String(label)}>
-            <div className="stat-label">{label}</div>
-            <div className="stat-value">{value}</div>
-            <div className="stat-note">{note}</div>
+          <div className="metric-card" key={String(label)}>
+            <span className="metric-kicker">{label}</span>
+            <strong>{value}</strong>
+            <small>{note}</small>
           </div>
         ))}
       </div>
-      <div className="grid-2">
+
+      <div className="grid-2 dashboard-panels">
         <section className="card">
-          <h2 className="section-title">What is different from Apps Script?</h2>
+          <div className="eyebrow">System health</div>
+          <h2 className="section-title">PostgreSQL-backed records</h2>
           <p className="muted">
-            ATIS Web queries PostgreSQL directly with indexed relationships. Class strength is derived from
-            real student records, not incremented during imports, so duplicate/error rows cannot inflate totals.
+            Student totals and class strength are calculated from real active records, preventing
+            failed imports from inflating school numbers.
           </p>
         </section>
         <section className="card">
-          <h2 className="section-title">Migration status</h2>
+          <div className="eyebrow">Build progress</div>
+          <h2 className="section-title">ATIS Web v0.4</h2>
           <p className="muted">
-            v0.3 adds hosted staff onboarding, Supabase staff logins, login-detail delivery,
-            staff appointments/contracts, printable appointment letters and self-service password changes.
-            Attendance, assessments/results and finance are the next operational modules.
+            Role-specific teacher access and the interface refresh are now in place. Attendance,
+            assessments/results and finance are next.
           </p>
         </section>
       </div>
