@@ -51,6 +51,12 @@ for each row execute function public.set_updated_at();
 alter table public.fee_adjustments enable row level security;
 alter table public.fee_payment_reversals enable row level security;
 
+-- Finance writes go through audited RPC functions only.
+drop policy if exists fee_items_write on public.fee_items;
+drop policy if exists fee_payments_write on public.fee_payments;
+revoke insert, update, delete on table public.fee_items, public.fee_payments from authenticated;
+grant select on table public.fee_items, public.fee_payments to authenticated;
+
 revoke all on table public.fee_adjustments, public.fee_payment_reversals from anon,authenticated;
 grant select on table public.fee_adjustments, public.fee_payment_reversals to authenticated;
 
