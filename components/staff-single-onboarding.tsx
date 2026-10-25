@@ -84,6 +84,16 @@ export function StaffSingleOnboarding() {
             <input name="address" />
           </div>
           <div className="field">
+            <label>Staff picture</label>
+            <input
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="user"
+            />
+            <small className="muted">Take or upload a portrait. JPG, PNG or WebP, maximum 5 MB.</small>
+          </div>
+          <div className="field">
             <label>Emergency contact name</label>
             <input name="emergency_contact_name" />
           </div>

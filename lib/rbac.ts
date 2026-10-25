@@ -87,6 +87,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "supervisor", "accountant"],
   },
   {
+    href: "/portal-access",
+    label: "Parent & Student Portals",
+    short: "PA",
+    roles: ["admin"],
+  },
+  {
     href: "/portal",
     label: "My Portal",
     short: "PO",

@@ -5,6 +5,11 @@ import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { field, parseCsv, parseFlexibleDate } from "@/lib/csv";
 import { normalizeGhanaPhone, provisionOrResetStaffLogin } from "@/lib/staff-access";
+import {
+  removeStaffPhoto,
+  staffPhotoValidationError,
+  uploadStaffPhoto,
+} from "@/lib/staff-photo";
 
 export type StaffCredentialRow = {
   fullName: string;
@@ -283,6 +288,11 @@ export async function createSingleStaffAction(
 ): Promise<SingleStaffState> {
   const { supabase, profile } = await requireProfile(["admin"]);
   const admin = createAdminClient();
+  const photo = formData.get("photo");
+  const photoError = staffPhotoValidationError(photo);
+  if (photoError) {
+    return { ok: false, message: photoError };
+  }
 
   const fullName = clean(String(formData.get("full_name") || ""));
   const phoneRaw = clean(String(formData.get("mobile") || ""));
@@ -397,6 +407,26 @@ export async function createSingleStaffAction(
     };
   }
 
+  let photoUploaded = false;
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      await uploadStaffPhoto(admin, {
+        schoolId: profile.school_id,
+        staffId: staff.id,
+        file: photo,
+      });
+      photoUploaded = true;
+    } catch (photoError) {
+      await admin.from("staff").delete().eq("id", staff.id);
+      return {
+        ok: false,
+        message:
+          "Staff record could not be completed because the photo upload failed: " +
+          (photoError instanceof Error ? photoError.message : "Unknown error"),
+      };
+    }
+  }
+
   try {
     const login = await provisionOrResetStaffLogin(admin, {
       schoolId: profile.school_id,
@@ -434,6 +464,13 @@ export async function createSingleStaffAction(
       emailSent: login.emailSent,
     };
   } catch (error) {
+    if (photoUploaded) {
+      await removeStaffPhoto(admin, {
+        schoolId: profile.school_id,
+        staffId: staff.id,
+        photoPath: profile.school_id + "/" + staff.id + "/profile",
+      }).catch(() => undefined);
+    }
     await admin.from("staff").delete().eq("id", staff.id);
     return {
       ok: false,

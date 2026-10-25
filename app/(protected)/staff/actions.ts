@@ -4,18 +4,28 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  removeStaffPhoto,
+  staffPhotoValidationError,
+  uploadStaffPhoto,
+} from "@/lib/staff-photo";
 
 function value(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
 }
 
 export async function updateStaffAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor"]);
   const staffId = value(formData, "staff_id");
+  const photo = formData.get("photo");
+  const photoError = staffPhotoValidationError(photo);
+  if (photoError) {
+    redirect("/staff/" + staffId + "/edit?error=" + encodeURIComponent(photoError));
+  }
 
   const { data: current, error: loadError } = await supabase
     .from("staff")
-    .select("id,user_id,email")
+    .select("id,user_id,email,profile_photo_url")
     .eq("id", staffId)
     .single();
 
@@ -76,9 +86,64 @@ export async function updateStaffAction(formData: FormData) {
     redirect("/staff/" + staffId + "/edit?error=" + encodeURIComponent(error.message));
   }
 
+  if (photo instanceof File && photo.size > 0) {
+    try {
+      await uploadStaffPhoto(createAdminClient(), {
+        schoolId: profile.school_id,
+        staffId,
+        file: photo,
+      });
+    } catch (photoUploadError) {
+      redirect(
+        "/staff/" + staffId + "/edit?error=" +
+          encodeURIComponent(
+            "Staff details were saved, but the photo could not be uploaded: " +
+              (photoUploadError instanceof Error ? photoUploadError.message : "Unknown error"),
+          ),
+      );
+    }
+  }
+
   revalidatePath("/staff");
   revalidatePath("/staff/" + staffId + "/edit");
   revalidatePath("/staff/" + staffId + "/access");
   revalidatePath("/teacher-assignments");
   redirect("/staff?ok=" + encodeURIComponent("Staff record updated."));
+}
+
+
+export async function removeStaffPhotoAction(formData: FormData) {
+  const { profile } = await requireProfile(["admin", "supervisor"]);
+  const staffId = value(formData, "staff_id");
+  const admin = createAdminClient();
+
+  const { data: staff, error } = await admin
+    .from("staff")
+    .select("id,profile_photo_url")
+    .eq("id", staffId)
+    .eq("school_id", profile.school_id)
+    .single();
+
+  if (error || !staff) {
+    redirect("/staff?error=" + encodeURIComponent("Staff record not found."));
+  }
+
+  try {
+    await removeStaffPhoto(admin, {
+      schoolId: profile.school_id,
+      staffId,
+      photoPath: staff.profile_photo_url,
+    });
+  } catch (removeError) {
+    redirect(
+      "/staff/" + staffId + "/edit?error=" +
+        encodeURIComponent(
+          removeError instanceof Error ? removeError.message : "Could not remove staff photo.",
+        ),
+    );
+  }
+
+  revalidatePath("/staff");
+  revalidatePath("/staff/" + staffId + "/edit");
+  redirect("/staff/" + staffId + "/edit?ok=" + encodeURIComponent("Staff photo removed."));
 }

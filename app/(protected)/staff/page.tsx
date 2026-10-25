@@ -6,7 +6,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const { data, error } = await supabase
     .from("staff")
-    .select("id,user_id,employee_code,full_name,email,mobile,role,position_title,specialization_duty,status")
+    .select("id,user_id,employee_code,full_name,email,mobile,role,position_title,specialization_duty,profile_photo_url,status")
     .order("full_name")
     .limit(300);
 
@@ -34,7 +34,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
           <thead>
             <tr>
               <th>Employee Code</th><th>Name</th><th>Role</th><th>Duty / Position</th>
-              <th>Phone</th><th>Email</th><th>Login</th><th>Status</th><th>Actions</th>
+              <th>Phone</th><th>Email</th><th>Picture</th><th>Login</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -46,6 +46,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                 <td>{r.position_title || r.specialization_duty || "—"}</td>
                 <td>{r.mobile || "—"}</td>
                 <td>{r.email || "—"}</td>
+                <td>{r.profile_photo_url ? <span className="tag">Captured</span> : <span className="tag gray">None</span>}</td>
                 <td>{r.user_id ? <span className="tag">Created</span> : <span className="tag gray">Not created</span>}</td>
                 <td>{r.status}</td>
                 <td>
@@ -67,7 +68,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                 </td>
               </tr>
             ))}
-            {!rows.length ? <tr><td colSpan={9} className="muted">No staff records yet.</td></tr> : null}
+            {!rows.length ? <tr><td colSpan={10} className="muted">No staff records yet.</td></tr> : null}
           </tbody>
         </table>
       </div>

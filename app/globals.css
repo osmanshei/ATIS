@@ -2138,3 +2138,70 @@ tbody tr:hover { background: #fbfdfb; }
     min-height: 19mm;
   }
 }
+
+
+/* ATIS v0.8.1 register, portal admin and staff photos */
+.roster-search-card {
+  display: grid;
+  grid-template-columns: minmax(240px,2fr) minmax(180px,1fr) minmax(150px,.8fr) auto auto;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+.roster-search-card .field { margin: 0; }
+.roster-result-summary,
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.roster-result-summary { margin: 8px 2px 12px; }
+.pagination-bar {
+  margin-top: 14px;
+  padding: 10px 2px;
+}
+.staff-photo-editor {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.staff-photo-preview {
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 132px;
+  flex: 0 0 auto;
+  border: 1px solid #cbded1;
+  border-radius: 14px;
+  background: var(--green-100);
+  color: var(--green-900);
+  font-size: 34px;
+  font-weight: 900;
+}
+.staff-photo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width:900px) {
+  .roster-search-card { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width:640px) {
+  .roster-search-card { grid-template-columns: 1fr; }
+  .roster-result-summary,
+  .pagination-bar,
+  .staff-photo-editor {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

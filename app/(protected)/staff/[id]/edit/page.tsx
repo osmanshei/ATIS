@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { updateStaffAction } from "../../actions";
+import { removeStaffPhotoAction, updateStaffAction } from "../../actions";
+import { signedStaffPhotoUrl } from "@/lib/staff-photo";
 
 export default async function EditStaffPage({
   params,
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; ok?: string }>;
 }) {
   const { id } = await params;
   const query = await searchParams;
@@ -16,6 +17,7 @@ export default async function EditStaffPage({
 
   const { data: staff } = await supabase.from("staff").select("*").eq("id", id).single();
   if (!staff) notFound();
+  const photoUrl = await signedStaffPhotoUrl(supabase, staff.profile_photo_url);
 
   return (
     <>
@@ -28,7 +30,26 @@ export default async function EditStaffPage({
         <Link className="button secondary" href="/staff">Back to staff</Link>
       </div>
 
+      {query.ok ? <div className="notice success">{query.ok}</div> : null}
       {query.error ? <div className="notice error">{query.error}</div> : null}
+
+      <section className="staff-photo-editor">
+        <div className="staff-photo-preview">
+          {photoUrl ? <img src={photoUrl} alt={staff.full_name} /> : <span>{String(staff.full_name || "?").slice(0, 1).toUpperCase()}</span>}
+        </div>
+        <div>
+          <div className="eyebrow">Staff picture</div>
+          <h2 className="section-title">{photoUrl ? "Picture on file" : "No picture uploaded"}</h2>
+          <p className="muted">Use the form below to take or upload a replacement picture.</p>
+          {photoUrl ? (
+            <form action={removeStaffPhotoAction}>
+              <input type="hidden" name="staff_id" value={staff.id} />
+              <button className="button secondary compact" type="submit">Remove Picture</button>
+            </form>
+          ) : null}
+        </div>
+      </section>
+
       {staff.user_id ? (
         <div className="notice">
           This staff member has a login account. Changes to name, email, phone, role and status will be synchronized with the account profile.
@@ -73,6 +94,11 @@ export default async function EditStaffPage({
           <div className="field"><label>Address</label><textarea name="address" rows={2} defaultValue={staff.address || ""} /></div>
           <div className="field"><label>Emergency contact name</label><input name="emergency_contact_name" defaultValue={staff.emergency_contact_name || ""} /></div>
           <div className="field"><label>Emergency contact phone</label><input name="emergency_contact_phone" defaultValue={staff.emergency_contact_phone || ""} /></div>
+          <div className="field">
+            <label>Replace staff picture</label>
+            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="user" />
+            <small className="muted">Take or upload a portrait. JPG, PNG or WebP, maximum 5 MB.</small>
+          </div>
         </div>
 
         <div className="action-row">
