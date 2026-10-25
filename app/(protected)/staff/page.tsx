@@ -21,7 +21,8 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
           <p>Teaching and non-teaching staff share one HR record while permissions remain role-based.</p>
         </div>
         <div className="action-row">
-          {isAdmin ? <Link className="button" href="/staff/onboarding">Bulk onboard staff</Link> : null}
+          {isAdmin ? <Link className="button" href="/staff/new">Add Staff</Link> : null}
+          {isAdmin ? <Link className="button secondary" href="/staff/onboarding">Bulk Onboarding</Link> : null}
           <Link className="button secondary" href="/staff/contracts">Appointments & Contracts</Link>
         </div>
       </div>
