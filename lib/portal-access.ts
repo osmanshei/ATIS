@@ -1,5 +1,6 @@
 import "server-only";
 
+import crypto from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   generateTemporaryPassword,
@@ -29,22 +30,52 @@ async function fetchWithTimeout(
   }
 }
 
-async function usableAuthEmail(
-  admin: SupabaseClient,
-  preferred: string,
+function internalPortalEmail(
   username: string,
   kind: "students" | "parents",
 ) {
-  if (preferred) {
-    const { data } = await admin
-      .from("profiles")
-      .select("user_id")
-      .eq("email", preferred)
-      .maybeSingle();
-    if (!data) return preferred;
-  }
-  return username + "@" + kind + ".atis.invalid";
+  const suffix = crypto.randomUUID().replace(/-/g, "").slice(0, 10);
+  return username + "." + suffix + "@" + kind + ".atis.invalid";
 }
+
+async function createPortalAuthUser(
+  admin: SupabaseClient,
+  args: {
+    username: string;
+    fullName: string;
+    password: string;
+    kind: "students" | "parents";
+  },
+) {
+  // Portal users authenticate with their ATIS username. A private internal
+  // Auth email prevents collisions with staff emails, shared parent emails,
+  // or old/orphaned Supabase Auth records.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const authEmail = internalPortalEmail(args.username, args.kind);
+    const { data, error } = await admin.auth.admin.createUser({
+      email: authEmail,
+      password: args.password,
+      email_confirm: true,
+      user_metadata: {
+        username: args.username,
+        full_name: args.fullName,
+        portal_account: true,
+      },
+    });
+
+    if (!error && data.user) {
+      return { user: data.user, authEmail };
+    }
+
+    const message = String(error?.message || "").toLowerCase();
+    if (!message.includes("already") && !message.includes("registered")) {
+      throw error || new Error("Could not create portal Auth user.");
+    }
+  }
+
+  throw new Error("Could not allocate a unique ATIS portal login identity.");
+}
+
 
 async function sendCredentials(args: {
   fullName: string;
@@ -172,13 +203,25 @@ async function ensureLinkedPortalProfile(
     preferredUsername?: string | null;
   },
 ) {
-  const { data: existing } = await admin
+  const { data: existing, error: existingError } = await admin
     .from("profiles")
-    .select("username,email")
+    .select("username,email,role,school_id")
     .eq("user_id", args.userId)
     .maybeSingle();
 
-  if (existing) return existing;
+  if (existingError) throw existingError;
+
+  if (existing) {
+    if (existing.school_id !== args.schoolId) {
+      throw new Error("The linked login account belongs to another school.");
+    }
+    if (existing.role !== args.role) {
+      throw new Error(
+        "The linked login account already belongs to a different ATIS role. Please contact the system administrator.",
+      );
+    }
+    return { username: existing.username, email: existing.email };
+  }
 
   const { data: authData, error: authError } = await admin.auth.admin.getUserById(args.userId);
   if (authError || !authData.user) {
@@ -190,14 +233,25 @@ async function ensureLinkedPortalProfile(
     args.fullName,
     args.preferredUsername || undefined,
   );
-  const authEmail =
-    authData.user.email ||
-    (await usableAuthEmail(
-      admin,
-      "",
+
+  // A previous interrupted attempt may have created Auth with a real contact
+  // email and failed before the ATIS profile/link completed. Move that Auth
+  // user to a unique internal email before repairing the profile.
+  let authEmail = internalPortalEmail(
+    username,
+    args.role === "parent" ? "parents" : "students",
+  );
+
+  const { error: authUpdateError } = await admin.auth.admin.updateUserById(args.userId, {
+    email: authEmail,
+    email_confirm: true,
+    user_metadata: {
       username,
-      args.role === "parent" ? "parents" : "students",
-    ));
+      full_name: args.fullName,
+      portal_account: true,
+    },
+  });
+  if (authUpdateError) throw authUpdateError;
 
   const { error: profileError } = await admin.from("profiles").insert({
     user_id: args.userId,
@@ -260,15 +314,13 @@ export async function provisionStudentPortalLogin(
       fullName,
       String(student.admission_number || ""),
     );
-    authEmail = await usableAuthEmail(admin, "", username, "students");
-
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email: authEmail,
+    const created = await createPortalAuthUser(admin, {
+      username,
+      fullName,
       password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: { username, full_name: fullName },
+      kind: "students",
     });
-    if (createError || !created.user) throw createError || new Error("Could not create student Auth user.");
+    authEmail = created.authEmail;
     userId = created.user.id;
 
     const { error: profileError } = await admin.from("profiles").insert({
@@ -297,10 +349,15 @@ export async function provisionStudentPortalLogin(
     }
   }
 
-  await admin
-    .from("profiles")
-    .update({ must_change_password: true, status: "active" })
-    .eq("user_id", userId);
+  try {
+    await admin
+      .from("profiles")
+      .update({ must_change_password: true, status: "active" })
+      .eq("user_id", userId);
+  } catch {
+    // The Auth password/login is already valid. A secondary profile refresh
+    // must not hide the generated credentials from the administrator.
+  }
 
   const { data: contactLink } = await admin
     .from("student_guardians")
@@ -320,19 +377,23 @@ export async function provisionStudentPortalLogin(
     accountLabel: "Student Portal",
   });
 
-  await admin.from("audit_logs").insert({
-    school_id: args.schoolId,
-    actor_user_id: args.sentBy || null,
-    action: "Student Portal Login Issued",
-    entity_type: "student",
-    entity_id: student.id,
-    details: {
-      username,
-      sms_sent: delivery.smsSent,
-      email_sent: delivery.emailSent,
-      credentials: "[REDACTED]",
-    },
-  });
+  try {
+    await admin.from("audit_logs").insert({
+      school_id: args.schoolId,
+      actor_user_id: args.sentBy || null,
+      action: "Student Portal Login Issued",
+      entity_type: "student",
+      entity_id: student.id,
+      details: {
+        username,
+        sms_sent: delivery.smsSent,
+        email_sent: delivery.emailSent,
+        credentials: "[REDACTED]",
+      },
+    });
+  } catch {
+    // Audit logging must not invalidate an already-created portal login.
+  }
 
   return { fullName, username, temporaryPassword, authEmail, ...delivery };
 }
@@ -376,20 +437,13 @@ export async function provisionGuardianPortalLogin(
     if (updateError) throw updateError;
   } else {
     username = await generateUniqueUsername(admin, "Parent " + fullName);
-    authEmail = await usableAuthEmail(
-      admin,
-      validEmail(guardian.email),
+    const created = await createPortalAuthUser(admin, {
       username,
-      "parents",
-    );
-
-    const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email: authEmail,
+      fullName,
       password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: { username, full_name: fullName },
+      kind: "parents",
     });
-    if (createError || !created.user) throw createError || new Error("Could not create parent Auth user.");
+    authEmail = created.authEmail;
     userId = created.user.id;
 
     const { error: profileError } = await admin.from("profiles").insert({
@@ -419,10 +473,14 @@ export async function provisionGuardianPortalLogin(
     }
   }
 
-  await admin
-    .from("profiles")
-    .update({ must_change_password: true, status: "active" })
-    .eq("user_id", userId);
+  try {
+    await admin
+      .from("profiles")
+      .update({ must_change_password: true, status: "active" })
+      .eq("user_id", userId);
+  } catch {
+    // The Auth login is already valid. Keep the generated credentials visible.
+  }
 
   const delivery = await sendCredentials({
     fullName,
@@ -433,19 +491,23 @@ export async function provisionGuardianPortalLogin(
     accountLabel: "Parent Portal",
   });
 
-  await admin.from("audit_logs").insert({
-    school_id: args.schoolId,
-    actor_user_id: args.sentBy || null,
-    action: "Parent Portal Login Issued",
-    entity_type: "guardian",
-    entity_id: guardian.id,
-    details: {
-      username,
-      sms_sent: delivery.smsSent,
-      email_sent: delivery.emailSent,
-      credentials: "[REDACTED]",
-    },
-  });
+  try {
+    await admin.from("audit_logs").insert({
+      school_id: args.schoolId,
+      actor_user_id: args.sentBy || null,
+      action: "Parent Portal Login Issued",
+      entity_type: "guardian",
+      entity_id: guardian.id,
+      details: {
+        username,
+        sms_sent: delivery.smsSent,
+        email_sent: delivery.emailSent,
+        credentials: "[REDACTED]",
+      },
+    });
+  } catch {
+    // Audit logging must not invalidate an already-created portal login.
+  }
 
   return { fullName, username, temporaryPassword, authEmail, ...delivery };
 }
