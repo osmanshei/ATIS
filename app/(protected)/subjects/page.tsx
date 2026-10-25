@@ -2,7 +2,7 @@ import { requireProfile } from "@/lib/auth";
 import { attachSubjectToClassAction, createSubjectAction } from "./actions";
 
 export default async function SubjectsPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
-  const { supabase, profile } = await requireProfile(["admin", "supervisor", "teacher"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor"]);
   const params = await searchParams;
   const canEdit = ["admin", "supervisor"].includes(profile.role);
   const [subjectsResult, classesResult, linksResult] = await Promise.all([
