@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 
-export default async function StaffPage() {
+export default async function StaffPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const params = await searchParams;
   const { data, error } = await supabase
     .from("staff")
     .select("id,user_id,employee_code,full_name,email,mobile,role,position_title,specialization_duty,status")
@@ -24,6 +25,8 @@ export default async function StaffPage() {
           <Link className="button secondary" href="/staff/contracts">Appointments & Contracts</Link>
         </div>
       </div>
+      {params.ok ? <div className="notice success">{params.ok}</div> : null}
+      {params.error ? <div className="notice error">{params.error}</div> : null}
       {error ? <div className="notice error">{error.message}</div> : null}
       <div className="table-wrap">
         <table>
@@ -46,6 +49,9 @@ export default async function StaffPage() {
                 <td>{r.status}</td>
                 <td>
                   <div className="action-row">
+                    {["admin","supervisor"].includes(profile.role) ? (
+                      <Link className="button secondary compact" href={"/staff/" + r.id + "/edit"}>Edit</Link>
+                    ) : null}
                     {isAdmin ? (
                       <Link className="button secondary compact" href={"/staff/" + r.id + "/access"}>
                         {r.user_id ? "Send Login Details" : "Create Login"}
