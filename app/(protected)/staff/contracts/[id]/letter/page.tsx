@@ -30,7 +30,7 @@ export default async function StaffAppointmentLetterPage({
     <div className="letter-shell">
       <div className="letter-toolbar no-print">
         <Link className="button secondary" href="/staff/contracts">Back</Link>
-        <PrintButton />
+        <PrintButton label="Print appointment letter" />
       </div>
 
       <article className="letter-page">
