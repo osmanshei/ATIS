@@ -123,3 +123,39 @@ export async function saveFeeAdjustmentAction(formData: FormData) {
       "&ok=Adjustment+saved.",
   );
 }
+
+
+export async function updateFeeItemAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
+  const feeItemId = value(formData, "fee_item_id");
+
+  const payload = {
+    term_id: value(formData, "term_id"),
+    class_id: value(formData, "class_id"),
+    applies_to_all_students: formData.get("applies_to_all_students") === "on",
+    fee_name: value(formData, "fee_name"),
+    fee_category: value(formData, "fee_category") || "school_fee",
+    amount: value(formData, "amount"),
+    due_date: value(formData, "due_date"),
+    is_concession_eligible: formData.get("is_concession_eligible") === "on",
+    is_active: formData.get("is_active") === "on",
+    notes: value(formData, "notes"),
+  };
+
+  const { error } = await supabase.rpc("update_fee_item", {
+    p_fee_item_id: feeItemId,
+    p_payload: payload,
+  });
+
+  if (error) {
+    redirect(
+      "/finance/fees/" + feeItemId + "/edit?error=" + encodeURIComponent(error.message),
+    );
+  }
+
+  revalidatePath("/finance");
+  revalidatePath("/finance/fees");
+  revalidatePath("/finance/balances");
+  revalidatePath("/results");
+  redirect("/finance/fees?ok=" + encodeURIComponent("Fee item updated."));
+}
