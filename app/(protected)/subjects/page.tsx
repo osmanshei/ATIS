@@ -1,14 +1,14 @@
 import { requireProfile } from "@/lib/auth";
-import { attachSubjectToClassAction, createSubjectAction } from "./actions";
+import { attachSubjectToClassAction, createSubjectAction, setSubjectReportFlagAction } from "./actions";
 
 export default async function SubjectsPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const { supabase, profile } = await requireProfile(["admin", "supervisor"]);
   const params = await searchParams;
   const canEdit = ["admin", "supervisor"].includes(profile.role);
   const [subjectsResult, classesResult, linksResult] = await Promise.all([
-    supabase.from("subject_catalogue").select("id,subject_name,subject_code,is_active").order("subject_name"),
+    supabase.from("subject_catalogue").select("id,subject_name,subject_code,is_active,include_on_report").order("subject_name"),
     supabase.from("classes").select("id,class_name,section").eq("is_active", true).order("class_name"),
-    supabase.from("class_subject_summary").select("id,class_name,section,subject_name,subject_code,max_marks,pass_marks,is_optional").order("class_name"),
+    supabase.from("class_subject_summary").select("id,class_name,section,subject_name,subject_code,max_marks,pass_marks,is_optional,include_on_report").order("class_name"),
   ]);
   const subjects = (subjectsResult.data || []) as any[];
   const classes = (classesResult.data || []) as any[];
@@ -24,6 +24,8 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Pro
           <h2 className="section-title">New subject</h2>
           <div className="field"><label>Subject name</label><input name="subject_name" required /></div>
           <div className="field"><label>Code</label><input name="subject_code" placeholder="MATH" required /></div>
+          <label className="checkbox-field"><input name="include_on_report" type="checkbox" defaultChecked /> Include on report cards</label>
+          <p className="muted">Untick this for timetable-only subjects.</p>
           <button className="button" type="submit">Create subject</button>
         </form>
         <form className="form-card" action={attachSubjectToClassAction}>
@@ -35,9 +37,32 @@ export default async function SubjectsPage({ searchParams }: { searchParams: Pro
         </form>
       </div> : null}
       <div className="table-wrap"><table>
-        <thead><tr><th>Class</th><th>Section</th><th>Subject</th><th>Code</th><th>Max</th><th>Pass</th></tr></thead>
-        <tbody>{links.map((r)=><tr key={r.id}><td>{r.class_name}</td><td>{r.section || "—"}</td><td><strong>{r.subject_name}</strong></td><td>{r.subject_code}</td><td>{r.max_marks}</td><td>{r.pass_marks}</td></tr>)}{!links.length?<tr><td colSpan={6} className="muted">No class-subject links yet.</td></tr>:null}</tbody>
+        <thead><tr><th>Class</th><th>Section</th><th>Subject</th><th>Code</th><th>Usage</th><th>Max</th><th>Pass</th></tr></thead>
+        <tbody>{links.map((r)=><tr key={r.id}><td>{r.class_name}</td><td>{r.section || "—"}</td><td><strong>{r.subject_name}</strong></td><td>{r.subject_code}</td><td><span className={r.include_on_report ? "tag" : "tag gray"}>{r.include_on_report ? "Report" : "Timetable only"}</span></td><td>{r.max_marks}</td><td>{r.pass_marks}</td></tr>)}{!links.length?<tr><td colSpan={7} className="muted">No class-subject links yet.</td></tr>:null}</tbody>
       </table></div>
+
+      <section className="panel-section">
+        <div className="section-heading"><div><div className="eyebrow">Report-card control</div><h2>Subject catalogue</h2></div></div>
+        <div className="table-wrap"><table>
+          <thead><tr><th>Subject</th><th>Code</th><th>Current Use</th><th>Action</th></tr></thead>
+          <tbody>
+            {subjects.map((s)=><tr key={s.id}>
+              <td><strong>{s.subject_name}</strong></td>
+              <td>{s.subject_code}</td>
+              <td><span className={s.include_on_report ? "tag" : "tag gray"}>{s.include_on_report ? "Report card" : "Timetable only"}</span></td>
+              <td>
+                <form action={setSubjectReportFlagAction}>
+                  <input type="hidden" name="subject_id" value={s.id} />
+                  <input type="hidden" name="include_on_report" value={s.include_on_report ? "false" : "true"} />
+                  <button className="button secondary compact" type="submit">
+                    {s.include_on_report ? "Make timetable only" : "Include on report"}
+                  </button>
+                </form>
+              </td>
+            </tr>)}
+          </tbody>
+        </table></div>
+      </section>
     </>
   );
 }
