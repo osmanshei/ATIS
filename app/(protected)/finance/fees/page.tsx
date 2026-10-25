@@ -193,7 +193,7 @@ export default async function FeeSetupPage({
           <thead>
             <tr>
               <th>Scope</th><th>Fee Item</th><th>Category</th><th>Amount</th>
-              <th>Due Date</th><th>Concession</th><th>Status</th>
+              <th>Due Date</th><th>Concession</th><th>Status</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -216,11 +216,12 @@ export default async function FeeSetupPage({
                   <td>{item.due_date || "—"}</td>
                   <td>{item.is_concession_eligible ? <span className="tag">Eligible</span> : <span className="tag gray">No</span>}</td>
                   <td><span className={item.is_active ? "tag" : "tag gray"}>{item.is_active ? "Active" : "Inactive"}</span></td>
+                  <td><Link className="button secondary compact" href={"/finance/fees/" + item.id + "/edit"}>Edit</Link></td>
                 </tr>
               );
             })}
             {!items.length ? (
-              <tr><td colSpan={7} className="muted">No fee items configured for this selection.</td></tr>
+              <tr><td colSpan={8} className="muted">No fee items configured for this selection.</td></tr>
             ) : null}
           </tbody>
         </table>
