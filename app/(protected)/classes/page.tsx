@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClassAction } from "./actions";
 
@@ -28,10 +29,10 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
       ) : null}
       {error ? <div className="notice error">{error.message}</div> : null}
       <div className="table-wrap"><table>
-        <thead><tr><th>Class</th><th>Section</th><th>Grade</th><th>Strength</th><th>Capacity</th><th>Room</th><th>Status</th></tr></thead>
+        <thead><tr><th>Class</th><th>Section</th><th>Grade</th><th>Strength</th><th>Capacity</th><th>Room</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
-          {rows.map((r) => <tr key={r.id}><td><strong>{r.class_name}</strong></td><td>{r.section || "—"}</td><td>{r.grade_level ?? "—"}</td><td>{r.total_strength}</td><td>{r.max_capacity ?? "—"}</td><td>{r.room_number || "—"}</td><td>{r.is_active ? "Active" : "Inactive"}</td></tr>)}
-          {!rows.length ? <tr><td colSpan={7} className="muted">No classes yet.</td></tr> : null}
+          {rows.map((r) => <tr key={r.id}><td><strong>{r.class_name}</strong></td><td>{r.section || "—"}</td><td>{r.grade_level ?? "—"}</td><td>{r.total_strength}</td><td>{r.max_capacity ?? "—"}</td><td>{r.room_number || "—"}</td><td>{r.is_active ? "Active" : "Inactive"}</td><td>{canEdit ? <Link className="button secondary compact" href={"/classes/" + r.id + "/edit"}>Edit</Link> : "—"}</td></tr>)}
+          {!rows.length ? <tr><td colSpan={8} className="muted">No classes yet.</td></tr> : null}
         </tbody>
       </table></div>
     </>
