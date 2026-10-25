@@ -55,3 +55,74 @@ export async function updateStudentAction(formData: FormData) {
   revalidatePath("/finance/balances");
   redirect("/students?ok=" + encodeURIComponent("Student updated."));
 }
+
+
+export async function createStudentAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+
+  const admissionNumber = value(formData, "admission_number");
+  const firstName = value(formData, "first_name");
+  const lastName = value(formData, "last_name");
+  const classId = value(formData, "class_id");
+
+  if (!admissionNumber || !firstName || !lastName || !classId) {
+    redirect(
+      "/students/new?error=" +
+        encodeURIComponent("Admission number, first name, last name and class are required."),
+    );
+  }
+
+  const row = {
+    admission_number: admissionNumber,
+    first_name: firstName,
+    middle_name: value(formData, "middle_name") || null,
+    last_name: lastName,
+    gender: value(formData, "gender") || null,
+    date_of_birth: value(formData, "date_of_birth") || null,
+    admission_date: value(formData, "admission_date") || null,
+    class_id: classId,
+    guardian_name: value(formData, "guardian_name") || null,
+    guardian_relation: value(formData, "guardian_relation") || "Guardian",
+    guardian_mobile: value(formData, "guardian_mobile") || null,
+    address_line: value(formData, "address_line") || null,
+    city: value(formData, "city") || null,
+    region: value(formData, "region") || null,
+    nhis_no: value(formData, "nhis_no") || null,
+    ghana_card_no: value(formData, "ghana_card_no") || null,
+    medical_notes: value(formData, "medical_notes") || null,
+  };
+
+  const { data, error } = await supabase.rpc("bulk_onboard_students", {
+    p_rows: [row],
+    p_file_name: "single_student_entry",
+  });
+
+  if (error) {
+    redirect("/students/new?error=" + encodeURIComponent(error.message));
+  }
+
+  const imported = Number((data as any)?.imported || 0);
+  const duplicates = Number((data as any)?.duplicates || 0);
+
+  if (!imported && duplicates) {
+    redirect(
+      "/students/new?error=" +
+        encodeURIComponent("A student with this admission number already exists."),
+    );
+  }
+
+  if (!imported) {
+    redirect(
+      "/students/new?error=" +
+        encodeURIComponent("The student could not be added. Please review the details."),
+    );
+  }
+
+  revalidatePath("/students");
+  revalidatePath("/dashboard");
+  revalidatePath("/classes");
+  revalidatePath("/finance");
+  revalidatePath("/finance/balances");
+
+  redirect("/students?ok=" + encodeURIComponent("Student added successfully."));
+}
