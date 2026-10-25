@@ -99,7 +99,38 @@ export default async function DashboardPage({
     );
   }
 
-  if (profile.role === "staff" || profile.role === "accountant") {
+  if (profile.role === "accountant") {
+    return (
+      <>
+        <section className="welcome-hero">
+          <div>
+            <div className="eyebrow">Finance workspace · {year?.name || "Current academic year"}</div>
+            <h1>Welcome, {profile.full_name.split(" ")[0]}.</h1>
+            <p>Manage school fees, payments, receipts, balances and finance reporting from your dedicated workspace.</p>
+          </div>
+          <div className="hero-actions">
+            <Link className="button hero-button" href="/finance/payments">Record Payment</Link>
+            <Link className="button secondary hero-secondary" href="/finance">Open Finance</Link>
+          </div>
+        </section>
+        {params.denied ? <div className="notice">That area is not available to your account.</div> : null}
+        <div className="grid-2">
+          <Link className="card dashboard-link-card" href="/finance">
+            <div className="eyebrow">Finance</div>
+            <h2 className="section-title">Fees & balances</h2>
+            <p className="muted">Configure fees, monitor collections and student balances.</p>
+          </Link>
+          <Link className="card dashboard-link-card" href="/finance/payments">
+            <div className="eyebrow">Cashier</div>
+            <h2 className="section-title">Post a payment</h2>
+            <p className="muted">Record payments and issue official ATIS receipts.</p>
+          </Link>
+        </div>
+      </>
+    );
+  }
+
+  if (profile.role === "staff") {
     return (
       <>
         <section className="welcome-hero">
@@ -155,6 +186,7 @@ export default async function DashboardPage({
           <Link className="button hero-button" href="/admissions">Admissions</Link>
           <Link className="button secondary hero-secondary" href="/staff">Staff</Link>
           <Link className="button secondary hero-secondary" href="/results">Results</Link>
+          <Link className="button secondary hero-secondary" href="/finance">Finance</Link>
         </div>
       </section>
 
@@ -181,10 +213,10 @@ export default async function DashboardPage({
         </section>
         <section className="card">
           <div className="eyebrow">Build progress</div>
-          <h2 className="section-title">ATIS Web v0.4</h2>
+          <h2 className="section-title">ATIS Web v0.7</h2>
           <p className="muted">
-            Role-specific teacher access, attendance, assessments, result computation and printable report cards are now in place.
-            Finance and deeper student/parent reporting are next.
+            Role-specific teacher access, attendance, assessments, report cards and the core Finance module are now in place.
+            Parent/student self-service, timetable, communications and advanced HR/operations remain.
           </p>
         </section>
       </div>
