@@ -13,6 +13,7 @@ export type StaffLoginState = {
   emailSent?: boolean;
   smsReason?: string;
   emailReason?: string;
+  profileRefreshReason?: string;
 };
 
 export async function provisionStaffLoginAction(
@@ -38,17 +39,22 @@ export async function provisionStaffLoginAction(
       result.emailSent ? "email" : "",
     ].filter(Boolean);
 
+    const successMessage = result.profileRefreshReason
+      ? "A new temporary password was created successfully. " + result.profileRefreshReason
+      : channels.length
+        ? "A new temporary password was created and sent by " + channels.join(" and ") + "."
+        : "A new temporary password was created, but automatic delivery is not configured or failed. Give the credentials to the staff member manually.";
+
     return {
       ok: true,
-      message: channels.length
-        ? "A new temporary password was created and sent by " + channels.join(" and ") + "."
-        : "A new temporary password was created, but automatic delivery is not configured or failed. Give the credentials to the staff member manually.",
+      message: successMessage,
       username: result.username,
       temporaryPassword: result.temporaryPassword,
       smsSent: result.smsSent,
       emailSent: result.emailSent,
       smsReason: result.smsReason,
       emailReason: result.emailReason,
+      profileRefreshReason: result.profileRefreshReason,
     };
   } catch (error) {
     return {

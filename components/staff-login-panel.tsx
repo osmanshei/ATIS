@@ -44,6 +44,9 @@ export function StaffLoginPanel({
             SMS: {state.smsSent ? "submitted" : state.smsReason || "not sent"} · Email:{" "}
             {state.emailSent ? "sent" : state.emailReason || "not sent"}
           </div>
+          {state.profileRefreshReason ? (
+            <div className="muted">{state.profileRefreshReason}</div>
+          ) : null}
         </div>
       ) : null}
     </section>

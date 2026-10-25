@@ -6,6 +6,25 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const SMS_BASE = (process.env.SMS_ONLINE_GHANA_BASE_URL || "https://api.smsonlinegh.com/v5").replace(/\/+$/, "");
 const SMS_SENDER = process.env.SMS_ONLINE_GHANA_GENERAL_SENDER || "ATIS_GH";
 
+function validStaffEmail(value: string | null | undefined) {
+  const email = String(value || "").trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+async function staffFetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs = 3500,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function normalizeGhanaPhone(value: string | null | undefined) {
   let phone = String(value || "").trim().replace(/[^\d+]/g, "");
   if (phone.startsWith("+")) phone = phone.slice(1);
@@ -109,35 +128,60 @@ export async function sendStaffCredentials(
     loginUrl?: string;
   },
 ) {
-  const result = { smsSent: false, smsReason: "", emailSent: false, emailReason: "" };
   const vercelHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL || "";
-  const loginUrl = args.loginUrl || process.env.NEXT_PUBLIC_APP_URL || (vercelHost ? "https://" + vercelHost : "");
+  const loginUrl =
+    args.loginUrl ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (vercelHost ? "https://" + vercelHost : "");
   const plainMessage =
-    "Dear " + args.fullName + ", ATIS staff login: " + (loginUrl ? loginUrl + " " : "") +
-    "Username: " + args.username + ". Temporary password: " + args.temporaryPassword +
+    "Dear " + args.fullName + ", ATIS staff login: " +
+    (loginUrl ? loginUrl + " " : "") +
+    "Username: " + args.username +
+    ". Temporary password: " + args.temporaryPassword +
     ". Please change your password after login.";
 
-  const smsKey = process.env.SMS_ONLINE_GHANA_API_KEY || "";
-  const phone = normalizeGhanaPhone(args.mobile);
-  if (smsKey && phone) {
+  const safeLog = async (details: Parameters<typeof logDelivery>[1]) => {
     try {
-      const response = await fetch(SMS_BASE + "/message/sms/send", {
+      await logDelivery(admin, details);
+    } catch {
+      // Delivery logging must never prevent a password reset from succeeding.
+    }
+  };
+
+  const sendSms = async () => {
+    const smsKey = process.env.SMS_ONLINE_GHANA_API_KEY || "";
+    const phone = normalizeGhanaPhone(args.mobile);
+
+    if (!smsKey) return { sent: false, reason: "SMS API is not configured." };
+    if (!phone) return { sent: false, reason: "No valid Ghana mobile number." };
+
+    try {
+      const response = await staffFetchWithTimeout(SMS_BASE + "/message/sms/send", {
         method: "POST",
         headers: {
           Accept: "application/json",
           Authorization: "key " + smsKey,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ text: plainMessage, type: 0, sender: SMS_SENDER, destinations: [phone] }),
+        body: JSON.stringify({
+          text: plainMessage,
+          type: 0,
+          sender: SMS_SENDER,
+          destinations: [phone],
+        }),
         cache: "no-store",
       });
       const body = await response.json().catch(() => null);
-      const ok = response.ok && body?.handshake && Number(body.handshake.id) === 0 && String(body.handshake.label || "") === "HSHK_OK";
+      const ok =
+        response.ok &&
+        body?.handshake &&
+        Number(body.handshake.id) === 0 &&
+        String(body.handshake.label || "") === "HSHK_OK";
+
       if (!ok) throw new Error(body?.handshake?.label || "HTTP " + response.status);
 
       const destination = body?.data?.destinations?.[0] || {};
-      result.smsSent = true;
-      await logDelivery(admin, {
+      await safeLog({
         schoolId: args.schoolId,
         staffId: args.staffId,
         kind: "staff_login",
@@ -148,9 +192,16 @@ export async function sendStaffCredentials(
         sentBy: args.sentBy,
         details: { sender: SMS_SENDER, message: "[REDACTED: Staff login credentials]" },
       });
+      return { sent: true, reason: "" };
     } catch (error) {
-      result.smsReason = error instanceof Error ? error.message : "SMS delivery failed.";
-      await logDelivery(admin, {
+      const reason =
+        error instanceof Error && error.name === "AbortError"
+          ? "SMS provider did not respond quickly enough. The new password is still active."
+          : error instanceof Error
+            ? error.message
+            : "SMS delivery failed.";
+
+      await safeLog({
         schoolId: args.schoolId,
         staffId: args.staffId,
         kind: "staff_login",
@@ -158,27 +209,37 @@ export async function sendStaffCredentials(
         destination: phone || args.mobile || "",
         status: "failed",
         sentBy: args.sentBy,
-        details: { reason: result.smsReason, message: "[REDACTED: Staff login credentials]" },
+        details: { reason, message: "[REDACTED: Staff login credentials]" },
       });
+      return { sent: false, reason };
     }
-  } else {
-    result.smsReason = smsKey ? "No valid Ghana mobile number." : "SMS API is not configured.";
-  }
+  };
 
-  const resendKey = process.env.RESEND_API_KEY || "";
-  const from = process.env.ATIS_EMAIL_FROM || "";
-  if (resendKey && from && args.email) {
+  const sendEmail = async () => {
+    const email = validStaffEmail(args.email);
+    const resendKey = process.env.RESEND_API_KEY || "";
+    const from = process.env.ATIS_EMAIL_FROM || "";
+
+    if (!email) return { sent: false, reason: "No valid staff email address is recorded." };
+    if (!resendKey || !from) {
+      return { sent: false, reason: "Email delivery is not configured." };
+    }
+
     try {
-      const response = await fetch("https://api.resend.com/emails", {
+      const response = await staffFetchWithTimeout("https://api.resend.com/emails", {
         method: "POST",
-        headers: { Authorization: "Bearer " + resendKey, "Content-Type": "application/json" },
+        headers: {
+          Authorization: "Bearer " + resendKey,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           from,
-          to: [args.email],
+          to: [email],
           subject: "ATIS — Staff Login Details",
           text:
             "Dear " + args.fullName + "\n\nYour ATIS staff account login details are:\n" +
-            "Username: " + args.username + "\nTemporary Password: " + args.temporaryPassword + "\n" +
+            "Username: " + args.username + "\nTemporary Password: " +
+            args.temporaryPassword + "\n" +
             (loginUrl ? "Login: " + loginUrl + "\n" : "") +
             "\nPlease change the temporary password after signing in.\n\nATIS",
         }),
@@ -187,37 +248,47 @@ export async function sendStaffCredentials(
       const body = await response.json().catch(() => null);
       if (!response.ok) throw new Error(body?.message || "HTTP " + response.status);
 
-      result.emailSent = true;
-      await logDelivery(admin, {
+      await safeLog({
         schoolId: args.schoolId,
         staffId: args.staffId,
         kind: "staff_login",
         channel: "email",
-        destination: args.email,
+        destination: email,
         status: "sent",
         providerReference: String(body?.id || ""),
         sentBy: args.sentBy,
-        details: { subject: "ATIS — Staff Login Details", message: "[REDACTED: Staff login credentials]" },
+        details: {
+          subject: "ATIS — Staff Login Details",
+          message: "[REDACTED: Staff login credentials]",
+        },
       });
+      return { sent: true, reason: "" };
     } catch (error) {
-      result.emailReason = error instanceof Error ? error.message : "Email delivery failed.";
-      await logDelivery(admin, {
+      const reason =
+        error instanceof Error && error.name === "AbortError"
+          ? "Email provider did not respond quickly enough. The new password is still active."
+          : error instanceof Error
+            ? error.message
+            : "Email delivery failed.";
+
+      await safeLog({
         schoolId: args.schoolId,
         staffId: args.staffId,
         kind: "staff_login",
         channel: "email",
-        destination: args.email,
+        destination: email,
         status: "failed",
         sentBy: args.sentBy,
-        details: { reason: result.emailReason, message: "[REDACTED: Staff login credentials]" },
+        details: { reason, message: "[REDACTED: Staff login credentials]" },
       });
+      return { sent: false, reason };
     }
-  } else {
-    result.emailReason = !args.email ? "No staff email address is recorded." : "Email delivery is not configured.";
-  }
+  };
 
-  if (!result.smsSent && !result.emailSent) {
-    await logDelivery(admin, {
+  const [sms, email] = await Promise.all([sendSms(), sendEmail()]);
+
+  if (!sms.sent && !email.sent) {
+    await safeLog({
       schoolId: args.schoolId,
       staffId: args.staffId,
       kind: "staff_login",
@@ -228,7 +299,12 @@ export async function sendStaffCredentials(
     });
   }
 
-  return result;
+  return {
+    smsSent: sms.sent,
+    smsReason: sms.reason,
+    emailSent: email.sent,
+    emailReason: email.reason,
+  };
 }
 
 export async function provisionOrResetStaffLogin(
@@ -243,21 +319,63 @@ export async function provisionOrResetStaffLogin(
     .single();
 
   if (staffError || !staff) throw new Error("Staff account not found.");
-  if (staff.status !== "active") throw new Error("Only active staff can receive login details.");
-
-  const email = String(staff.email || "").trim().toLowerCase();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new Error("A valid staff email address is required before creating login access.");
+  if (staff.status !== "active") {
+    throw new Error("Only active staff can receive login details.");
   }
 
+  const staffEmail = validStaffEmail(staff.email);
   const temporaryPassword = generateTemporaryPassword();
   let userId = staff.user_id as string | null;
   let username = "";
+  let deliveryEmail = staffEmail;
 
   if (userId) {
-    const { data: profile, error: profileError } = await admin.from("profiles").select("username").eq("user_id", userId).single();
-    if (profileError || !profile) throw new Error("The staff Auth link exists but its profile is missing.");
-    username = profile.username;
+    const [{ data: authData, error: authError }, { data: profile }] = await Promise.all([
+      admin.auth.admin.getUserById(userId),
+      admin
+        .from("profiles")
+        .select("username,email")
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
+
+    if (authError || !authData.user) {
+      throw new Error("The linked staff login account could not be found.");
+    }
+
+    if (profile) {
+      username = profile.username;
+      if (!deliveryEmail) {
+        const profileEmail = validStaffEmail(profile.email);
+        if (profileEmail && !profileEmail.endsWith(".atis.invalid")) {
+          deliveryEmail = profileEmail;
+        }
+      }
+    } else {
+      const preferred = String((staff.legacy_payload as any)?.source_username || "");
+      username = await generateUniqueUsername(admin, staff.full_name, preferred);
+      const authEmail = validStaffEmail(authData.user.email);
+
+      if (!authEmail) {
+        throw new Error(
+          "The staff login exists but its profile is missing and the Auth account has no usable email. Update the staff email first.",
+        );
+      }
+
+      const { error: profileError } = await admin.from("profiles").insert({
+        user_id: userId,
+        school_id: args.schoolId,
+        username,
+        full_name: staff.full_name,
+        email: authEmail,
+        mobile: staff.mobile || null,
+        role: staff.role,
+        status: "active",
+        must_change_password: true,
+      });
+      if (profileError) throw profileError;
+      if (!deliveryEmail) deliveryEmail = authEmail;
+    }
 
     const { error: updateAuthError } = await admin.auth.admin.updateUserById(userId, {
       password: temporaryPassword,
@@ -266,16 +384,25 @@ export async function provisionOrResetStaffLogin(
     });
     if (updateAuthError) throw updateAuthError;
   } else {
+    // A real email is needed only when creating a new Supabase Auth account.
+    if (!staffEmail) {
+      throw new Error(
+        "A valid staff email address is required before creating login access. Existing accounts can be reset without email delivery.",
+      );
+    }
+
     const preferred = String((staff.legacy_payload as any)?.source_username || "");
     username = await generateUniqueUsername(admin, staff.full_name, preferred);
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email,
+      email: staffEmail,
       password: temporaryPassword,
       email_confirm: true,
       user_metadata: { username, full_name: staff.full_name },
     });
-    if (createError || !created.user) throw createError || new Error("Could not create Auth user.");
+    if (createError || !created.user) {
+      throw createError || new Error("Could not create Auth user.");
+    }
     userId = created.user.id;
 
     const { error: profileError } = await admin.from("profiles").insert({
@@ -283,7 +410,7 @@ export async function provisionOrResetStaffLogin(
       school_id: args.schoolId,
       username,
       full_name: staff.full_name,
-      email,
+      email: staffEmail,
       mobile: staff.mobile || null,
       role: staff.role,
       status: "active",
@@ -295,7 +422,11 @@ export async function provisionOrResetStaffLogin(
       throw profileError;
     }
 
-    const { error: linkError } = await admin.from("staff").update({ user_id: userId }).eq("id", staff.id);
+    const { error: linkError } = await admin
+      .from("staff")
+      .update({ user_id: userId })
+      .eq("id", staff.id);
+
     if (linkError) {
       await admin.from("profiles").delete().eq("user_id", userId);
       await admin.auth.admin.deleteUser(userId);
@@ -303,26 +434,60 @@ export async function provisionOrResetStaffLogin(
     }
   }
 
-  await admin.from("profiles").update({ must_change_password: true, status: "active" }).eq("user_id", userId);
+  const { error: profileUpdateError } = await admin
+    .from("profiles")
+    .update({
+      must_change_password: true,
+      status: "active",
+      full_name: staff.full_name,
+      mobile: staff.mobile || null,
+      role: staff.role,
+    })
+    .eq("user_id", userId);
+
+  const profileRefreshReason = profileUpdateError
+    ? "Password reset succeeded, but the account profile flag could not be refreshed: " +
+      profileUpdateError.message
+    : "";
 
   const delivery = await sendStaffCredentials(admin, {
     schoolId: args.schoolId,
     staffId: staff.id,
     fullName: staff.full_name,
     mobile: staff.mobile,
-    email,
+    email: deliveryEmail || null,
     username,
     temporaryPassword,
     sentBy: args.sentBy,
     loginUrl: args.loginUrl,
   });
 
+  try {
+    await admin.from("audit_logs").insert({
+      school_id: args.schoolId,
+      actor_user_id: args.sentBy || null,
+      action: "Staff Login Issued or Reset",
+      entity_type: "staff",
+      entity_id: staff.id,
+      details: {
+        username,
+        sms_sent: delivery.smsSent,
+        email_sent: delivery.emailSent,
+        credentials: "[REDACTED]",
+      },
+    });
+  } catch {
+    // Audit logging should not invalidate an already successful password reset.
+  }
+
   return {
     fullName: staff.full_name,
     username,
     temporaryPassword,
-    email,
+    email: deliveryEmail || "",
     mobile: staff.mobile || "",
     ...delivery,
+    profileRefreshReason,
   };
 }
+
