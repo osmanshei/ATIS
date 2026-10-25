@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { attachSubjectToClassAction, createSubjectAction, setSubjectReportFlagAction } from "./actions";
 
