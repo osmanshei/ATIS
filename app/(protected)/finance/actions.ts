@@ -14,6 +14,7 @@ export async function saveFeeItemAction(formData: FormData) {
   const payload = {
     term_id: value(formData, "term_id"),
     class_id: value(formData, "class_id"),
+    applies_to_all_students: formData.get("applies_to_all_students") === "on",
     fee_name: value(formData, "fee_name"),
     fee_category: value(formData, "fee_category") || "school_fee",
     amount: value(formData, "amount"),
