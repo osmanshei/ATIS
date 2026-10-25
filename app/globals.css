@@ -1931,3 +1931,41 @@ tbody tr:hover { background: #fbfdfb; }
     flex-direction: column;
   }
 }
+
+
+/* ATIS v0.7.3 direct onboarding */
+.credential-card {
+  margin-top: 16px;
+  border: 1px solid #bad3c2;
+  background: linear-gradient(135deg,var(--green-50),#fff);
+}
+.credential-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+.credential-grid > div {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.credential-grid span {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .055em;
+}
+.credential-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--green-950);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+@media (max-width:700px) {
+  .credential-grid { grid-template-columns:1fr; }
+}
