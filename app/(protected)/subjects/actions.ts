@@ -71,3 +71,32 @@ export async function setSubjectReportFlagAction(formData: FormData) {
       ),
   );
 }
+
+
+export async function updateSubjectAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor"]);
+  const subjectId = String(formData.get("subject_id") || "").trim();
+
+  const payload = {
+    subject_name: String(formData.get("subject_name") || "").trim(),
+    subject_code: String(formData.get("subject_code") || "").trim().toUpperCase(),
+    subject_group: String(formData.get("subject_group") || "").trim(),
+    include_on_report: formData.get("include_on_report") === "on",
+    is_active: formData.get("is_active") === "on",
+  };
+
+  const { error } = await supabase.rpc("update_subject_record", {
+    p_subject_id: subjectId,
+    p_payload: payload,
+  });
+
+  if (error) {
+    redirect("/subjects/" + subjectId + "/edit?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/subjects");
+  revalidatePath("/assessments");
+  revalidatePath("/results");
+  revalidatePath("/teacher-assignments");
+  redirect("/subjects?ok=" + encodeURIComponent("Subject updated."));
+}
