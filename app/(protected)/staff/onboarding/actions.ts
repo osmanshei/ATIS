@@ -258,3 +258,189 @@ export async function bulkOnboardStaffAction(
     credentials,
   };
 }
+
+
+export type SingleStaffState = {
+  ok: boolean;
+  message: string;
+  staffId?: string;
+  fullName?: string;
+  employeeCode?: string;
+  username?: string;
+  temporaryPassword?: string;
+  smsSent?: boolean;
+  emailSent?: boolean;
+};
+
+export const initialSingleStaffState: SingleStaffState = {
+  ok: false,
+  message: "",
+};
+
+export async function createSingleStaffAction(
+  _previous: SingleStaffState,
+  formData: FormData,
+): Promise<SingleStaffState> {
+  const { supabase, profile } = await requireProfile(["admin"]);
+  const admin = createAdminClient();
+
+  const fullName = clean(String(formData.get("full_name") || ""));
+  const phoneRaw = clean(String(formData.get("mobile") || ""));
+  const email = clean(String(formData.get("email") || "")).toLowerCase();
+  const normalizedPhone = normalizeGhanaPhone(phoneRaw);
+
+  if (!fullName || !normalizedPhone || !email) {
+    return {
+      ok: false,
+      message: "Full name, phone number and email are required.",
+    };
+  }
+
+  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+    return { ok: false, message: "Enter a valid email address." };
+  }
+
+  const requestedRole = clean(String(formData.get("role") || "teacher")).toLowerCase();
+  const allowedRoles = new Set(["teacher", "supervisor", "clerk", "accountant", "staff"]);
+  if (!allowedRoles.has(requestedRole)) {
+    return { ok: false, message: "Choose a valid staff role." };
+  }
+
+  const { data: duplicate } = await admin
+    .from("staff")
+    .select("id,email,mobile,employee_code")
+    .eq("school_id", profile.school_id)
+    .or(
+      "email.eq." +
+        email +
+        ",mobile.eq." +
+        normalizedPhone,
+    )
+    .limit(1)
+    .maybeSingle();
+
+  if (duplicate) {
+    return {
+      ok: false,
+      message: "A staff record with this email or phone number already exists.",
+    };
+  }
+
+  let employeeCode = clean(String(formData.get("employee_code") || ""));
+  if (!employeeCode) {
+    const { data: generatedCode, error: codeError } = await supabase.rpc("next_staff_employee_code");
+    if (codeError || !generatedCode) {
+      return {
+        ok: false,
+        message: codeError?.message || "Could not generate an employee code.",
+      };
+    }
+    employeeCode = String(generatedCode);
+  }
+
+  const { data: duplicateCode } = await admin
+    .from("staff")
+    .select("id")
+    .eq("school_id", profile.school_id)
+    .ilike("employee_code", employeeCode)
+    .limit(1)
+    .maybeSingle();
+
+  if (duplicateCode) {
+    return {
+      ok: false,
+      message: "That employee code is already in use.",
+    };
+  }
+
+  const position =
+    clean(String(formData.get("position_title") || "")) ||
+    (requestedRole === "teacher"
+      ? "Teacher"
+      : requestedRole === "staff"
+        ? "Staff"
+        : requestedRole.charAt(0).toUpperCase() + requestedRole.slice(1));
+
+  const { data: staff, error: insertError } = await admin
+    .from("staff")
+    .insert({
+      school_id: profile.school_id,
+      employee_code: employeeCode,
+      full_name: fullName,
+      email,
+      mobile: normalizedPhone,
+      role: requestedRole,
+      position_title: position,
+      gender: clean(String(formData.get("gender") || "")) || null,
+      date_of_birth: clean(String(formData.get("date_of_birth") || "")) || null,
+      qualification: clean(String(formData.get("qualification") || "")) || null,
+      specialization_duty:
+        clean(String(formData.get("specialization_duty") || "")) || position,
+      joining_date: clean(String(formData.get("joining_date") || "")) || null,
+      address: clean(String(formData.get("address") || "")) || null,
+      emergency_contact_name:
+        clean(String(formData.get("emergency_contact_name") || "")) || null,
+      emergency_contact_phone:
+        clean(String(formData.get("emergency_contact_phone") || "")) || null,
+      status: "active",
+      legacy_payload: {
+        source: "hosted_single_staff_onboarding",
+      },
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !staff) {
+    return {
+      ok: false,
+      message: insertError?.message || "Could not create the staff record.",
+    };
+  }
+
+  try {
+    const login = await provisionOrResetStaffLogin(admin, {
+      schoolId: profile.school_id,
+      staffId: staff.id,
+      sentBy: profile.user_id,
+      loginUrl: process.env.NEXT_PUBLIC_APP_URL || "",
+    });
+
+    await admin.from("audit_logs").insert({
+      school_id: profile.school_id,
+      actor_user_id: profile.user_id,
+      action: "Hosted Single Staff Onboarding",
+      entity_type: "staff",
+      entity_id: staff.id,
+      details: {
+        employee_code: employeeCode,
+        role: requestedRole,
+        email,
+        mobile: normalizedPhone,
+      },
+    });
+
+    revalidatePath("/staff");
+    revalidatePath("/dashboard");
+
+    return {
+      ok: true,
+      message: "Staff member created successfully. Save the login details below.",
+      staffId: staff.id,
+      fullName,
+      employeeCode,
+      username: login.username,
+      temporaryPassword: login.temporaryPassword,
+      smsSent: login.smsSent,
+      emailSent: login.emailSent,
+    };
+  } catch (error) {
+    await admin.from("staff").delete().eq("id", staff.id);
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "The staff account could not be provisioned.",
+    };
+  }
+}
