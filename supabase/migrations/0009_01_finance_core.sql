@@ -344,7 +344,7 @@ begin
 
   if v_year is null then raise exception 'Choose a valid term'; end if;
   if v_value is null or v_value<0 then raise exception 'Enter a valid adjustment value'; end if;
-  if v_calc='percent' and v_value>100 then raise exception 'Percentage adjustment cannot exceed 100%'; end if;
+  if v_calc='percent' and v_value>100 then raise exception 'Percentage adjustment cannot exceed 100 percent'; end if;
 
   if v_item is not null and not exists (
     select 1 from public.fee_items fi
@@ -485,7 +485,6 @@ select
   c.gross_fees,
   c.concession_percent,
   c.concession_amount,
-  coalesce(a.adjustment_amount,0)::numeric(12,2) additional_adjustment,
   greatest(
     c.gross_fees-c.concession_amount-coalesce(a.adjustment_amount,0),
     0
@@ -495,6 +494,7 @@ select
     (c.gross_fees-c.concession_amount-coalesce(a.adjustment_amount,0))-coalesce(p.amount_paid,0),
     0
   )::numeric(12,2) outstanding_balance,
+  coalesce(a.adjustment_amount,0)::numeric(12,2) additional_adjustment,
   greatest(
     coalesce(p.amount_paid,0)-
       (c.gross_fees-c.concession_amount-coalesce(a.adjustment_amount,0)),
