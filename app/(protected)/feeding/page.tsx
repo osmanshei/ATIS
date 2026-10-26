@@ -19,7 +19,6 @@ export default async function FeedingPage({
     "supervisor",
     "accountant",
     "clerk",
-    "staff",
   ]);
   const params = await searchParams;
   const date = params.date || today();
