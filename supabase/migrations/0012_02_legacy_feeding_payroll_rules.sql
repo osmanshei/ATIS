@@ -120,14 +120,14 @@ drop policy if exists feeding_rates_read on public.feeding_rates;
 create policy feeding_rates_read on public.feeding_rates for select to authenticated
 using (
   school_id=(select public.current_school_id())
-  and (select public.current_app_role()) in ('admin','supervisor','accountant','clerk','staff')
+  and (select public.current_app_role()) in ('admin','supervisor','accountant','clerk')
 );
 
 drop policy if exists feeding_plans_read on public.student_feeding_plans;
 create policy feeding_plans_read on public.student_feeding_plans for select to authenticated
 using (
   school_id=(select public.current_school_id())
-  and (select public.current_app_role()) in ('admin','supervisor','accountant','clerk','staff')
+  and (select public.current_app_role()) in ('admin','supervisor','accountant','clerk')
 );
 
 drop policy if exists feeding_payments_read on public.feeding_payments;
@@ -141,7 +141,7 @@ drop policy if exists feeding_wallet_read on public.feeding_wallet_entries;
 create policy feeding_wallet_read on public.feeding_wallet_entries for select to authenticated
 using (
   school_id=(select public.current_school_id())
-  and (select public.current_app_role()) in ('admin','supervisor','accountant','clerk','staff')
+  and (select public.current_app_role()) in ('admin','supervisor','accountant','clerk')
 );
 
 create or replace function public.feeding_frequency_rate(
@@ -354,10 +354,8 @@ as $$
 declare
   v_school uuid;
   v_frequency text;
-  v_exempt boolean;
   v_credit numeric := 0;
   r record;
-  v_rate numeric;
 begin
   v_school:=public.current_school_id();
 
@@ -368,61 +366,69 @@ begin
     and term_id=p_term_id
     and status='active';
 
-  v_exempt:=coalesce(v_frequency='exempt',false);
-
   delete from public.feeding_wallet_entries
   where school_id=v_school
     and student_id=p_student_id
     and term_id=p_term_id
     and entry_type='charge';
 
-  select coalesce(sum(amount),0) into v_credit
-  from public.feeding_wallet_entries
-  where school_id=v_school
-    and student_id=p_student_id
-    and term_id=p_term_id
-    and entry_type in ('payment','adjustment','refund');
-
-  if v_exempt then return; end if;
+  if coalesce(v_frequency='exempt',false) then return; end if;
 
   for r in
-    select
-      ar.id attendance_record_id,
-      ar.status,
-      s.attendance_date,
-      s.class_id
-    from public.attendance_records ar
-    join public.attendance_sessions s on s.id=ar.session_id
-    where ar.school_id=v_school
-      and ar.student_id=p_student_id
-      and s.term_id=p_term_id
-      and s.mode='daily'
-      and extract(isodow from s.attendance_date)::integer between 1 and 4
-    order by s.attendance_date,ar.created_at
+    select *
+    from (
+      select
+        e.entry_date event_date,
+        0 event_order,
+        'credit' event_kind,
+        e.amount event_amount,
+        null::uuid attendance_record_id,
+        null::numeric daily_rate
+      from public.feeding_wallet_entries e
+      where e.school_id=v_school
+        and e.student_id=p_student_id
+        and e.term_id=p_term_id
+        and e.entry_type in ('payment','adjustment','refund')
+
+      union all
+
+      select
+        s.attendance_date event_date,
+        1 event_order,
+        'attendance' event_kind,
+        0::numeric event_amount,
+        ar.id attendance_record_id,
+        coalesce(fr.daily_rate,0) daily_rate
+      from public.attendance_records ar
+      join public.attendance_sessions s on s.id=ar.session_id
+      left join public.feeding_rates fr
+        on fr.school_id=s.school_id
+       and fr.term_id=s.term_id
+       and fr.class_id=s.class_id
+       and fr.status='active'
+      where ar.school_id=v_school
+        and ar.student_id=p_student_id
+        and s.term_id=p_term_id
+        and s.mode='daily'
+        and ar.status in ('present','late')
+        and extract(isodow from s.attendance_date)::integer between 1 and 4
+    ) events
+    order by event_date,event_order
   loop
-    if r.status in ('present','late') then
-      select daily_rate into v_rate
-      from public.feeding_rates
-      where school_id=v_school
-        and term_id=p_term_id
-        and class_id=r.class_id
-        and status='active'
-      limit 1;
+    if r.event_kind='credit' then
+      v_credit:=v_credit+coalesce(r.event_amount,0);
+    elsif r.daily_rate>0 and v_credit>=r.daily_rate then
+      insert into public.feeding_wallet_entries(
+        school_id,academic_year_id,term_id,student_id,entry_date,entry_type,
+        amount,attendance_record_id,description,created_by
+      )
+      select
+        v_school,t.academic_year_id,p_term_id,p_student_id,r.event_date,
+        'charge',-r.daily_rate,r.attendance_record_id,
+        'Feeding charge - '||r.event_date::text,auth.uid()
+      from public.terms t where t.id=p_term_id;
 
-      v_rate:=coalesce(v_rate,0);
-
-      if v_rate>0 and v_credit>=v_rate then
-        insert into public.feeding_wallet_entries(
-          school_id,academic_year_id,term_id,student_id,entry_date,entry_type,
-          amount,attendance_record_id,description,created_by
-        )
-        select
-          v_school,t.academic_year_id,p_term_id,p_student_id,r.attendance_date,
-          'charge',-v_rate,r.attendance_record_id,
-          'Feeding charge - '||r.attendance_date::text,auth.uid()
-        from public.terms t where t.id=p_term_id;
-        v_credit:=v_credit-v_rate;
-      end if;
+      v_credit:=v_credit-r.daily_rate;
     end if;
   end loop;
 end;
@@ -438,7 +444,7 @@ create or replace function public.record_feeding_payment(
   p_remarks text default null,
   p_amount numeric default null
 )
-returns uuid
+returns text
 language plpgsql
 security definer
 set search_path=public
@@ -527,7 +533,7 @@ begin
     school_id,academic_year_id,term_id,student_id,entry_date,entry_type,
     amount,payment_id,description,created_by
   ) values(
-    v_school,v_year,p_term_id,p_student_id,coalesce(p_payment_date,current_date),
+    v_school,v_year,p_term_id,p_student_id,v_start,
     'payment',v_amount,v_id,'Feeding payment - '||v_label,auth.uid()
   );
 
@@ -540,9 +546,9 @@ begin
     jsonb_build_object('student_id',p_student_id,'frequency',p_frequency,'amount',v_amount,'receipt_no',v_receipt)
   );
 
-  return v_id;
+  return v_receipt;
 end;
-$$;
+$;
 
 create or replace function public.sync_feeding_after_attendance()
 returns trigger
@@ -581,7 +587,7 @@ with (security_invoker=true)
 as
 select
   st.school_id,
-  p.term_id,
+  t.id term_id,
   st.id student_id,
   st.admission_number,
   st.first_name,
@@ -598,11 +604,13 @@ select
   coalesce(sum(e.amount),0)::numeric(12,2) credit_balance
 from public.students st
 join public.classes c on c.id=st.class_id
-join public.terms t on t.school_id=st.school_id and t.is_current=true
-left join public.student_feeding_plans p on p.student_id=st.id and p.term_id=t.id and p.status='active'
-left join public.feeding_wallet_entries e on e.student_id=st.id and e.term_id=t.id
+join public.terms t on t.school_id=st.school_id
+left join public.student_feeding_plans p
+  on p.student_id=st.id and p.term_id=t.id and p.status='active'
+left join public.feeding_wallet_entries e
+  on e.student_id=st.id and e.term_id=t.id
 where st.status='active'
-group by st.school_id,p.term_id,t.id,st.id,c.id,p.id;
+group by st.school_id,t.id,st.id,c.id,p.id;
 
 grant select on public.feeding_student_balance to authenticated;
 
@@ -653,7 +661,7 @@ select
   case
     when fp.frequency='exempt' then 'exempt'
     when ar.status not in ('present','late') then
-      case when coalesce(b.credit_balance,0)>0 then 'credit_carried_forward' else 'absent' end
+      case when coalesce(hist.as_of_credit,0)>0 then 'credit_carried_forward' else 'absent' end
     when ch.id is not null then 'paid'
     else 'unpaid'
   end payment_mark,
@@ -673,6 +681,13 @@ left join public.feeding_wallet_entries ch
   on ch.attendance_record_id=ar.id and ch.entry_type='charge'
 left join public.feeding_student_balance b
   on b.student_id=ar.student_id and b.term_id=s.term_id
+left join lateral (
+  select coalesce(sum(e2.amount),0)::numeric(12,2) as as_of_credit
+  from public.feeding_wallet_entries e2
+  where e2.student_id=ar.student_id
+    and e2.term_id=s.term_id
+    and e2.entry_date<=s.attendance_date
+) hist on true
 where extract(isodow from s.attendance_date)::integer between 1 and 4;
 
 grant select on public.feeding_daily_register to authenticated;
@@ -1507,8 +1522,28 @@ group by sa.school_id,date_trunc('month',sa.attendance_date)::date,sa.staff_id,s
 
 grant select on public.staff_early_attendance_summary to authenticated;
 
+create or replace view public.payroll_staff_directory
+with (security_invoker=false)
+as
+select
+  s.id,
+  s.school_id,
+  s.full_name,
+  s.employee_code,
+  s.position_title,
+  s.joining_date
+from public.staff s
+where s.school_id=public.current_school_id()
+  and s.status='active'
+  and (
+    public.is_payroll_finance_user()
+    or s.id=public.current_staff_id()
+  );
+
+grant select on public.payroll_staff_directory to authenticated;
+
 create or replace view public.payroll_profile_summary
-with (security_invoker=true)
+with (security_invoker=false)
 as
 select
   pp.*,
@@ -1521,13 +1556,18 @@ select
   coalesce(pp.base_pay_override,pc.base_pay,0)::numeric(12,2) effective_base_pay
 from public.payroll_profiles pp
 join public.staff st on st.id=pp.staff_id
-left join public.payroll_categories pc on pc.id=pp.category_id;
+left join public.payroll_categories pc on pc.id=pp.category_id
+where pp.school_id=public.current_school_id()
+  and (
+    public.is_payroll_finance_user()
+    or pp.staff_id=public.current_staff_id()
+  );
 
 grant select on public.payroll_profile_summary to authenticated;
 
 -- Rebuild payroll item summary with legacy fields.
 create or replace view public.payroll_item_summary
-with (security_invoker=true)
+with (security_invoker=false)
 as
 select
   pi.*,
@@ -1547,7 +1587,12 @@ select
 from public.payroll_items pi
 join public.payroll_runs pr on pr.id=pi.payroll_run_id
 join public.staff s on s.id=pi.staff_id
-left join public.staff_contracts c on c.id=pi.contract_id;
+left join public.staff_contracts c on c.id=pi.contract_id
+where pi.school_id=public.current_school_id()
+  and (
+    public.is_payroll_finance_user()
+    or pi.staff_id=public.current_staff_id()
+  );
 
 grant select on public.payroll_item_summary to authenticated;
 
