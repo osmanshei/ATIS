@@ -13,7 +13,7 @@ export default async function FeedingSettingsPage({
 }: {
   searchParams: Promise<{ term?: string; q?: string; ok?: string; error?: string }>;
 }) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
   const params = await searchParams;
 
   const { data: terms } = await supabase
@@ -39,7 +39,7 @@ export default async function FeedingSettingsPage({
       .select("*")
       .eq("term_id", termId),
     supabase
-      .from("staff")
+      .from("feeding_staff_directory")
       .select("id,full_name,employee_code,role")
       .eq("status", "active")
       .order("full_name"),
@@ -65,6 +65,7 @@ export default async function FeedingSettingsPage({
 
   const { data: students } = await studentQuery;
   const rateMap = new Map((rates || []).map((row: any) => [row.class_id, row]));
+  const canConfigureRates = ["admin", "supervisor", "accountant"].includes(profile.role);
 
   return (
     <>
@@ -107,11 +108,11 @@ export default async function FeedingSettingsPage({
                 <input type="hidden" name="term_id" value={termId} />
                 <input type="hidden" name="class_id" value={cls.id} />
                 <div><strong>{cls.class_name}{cls.section ? " / " + cls.section : ""}</strong></div>
-                <div className="field"><label>Daily</label><input name="daily_rate" type="number" min="0" step="0.01" defaultValue={rate?.daily_rate ?? 4} /></div>
-                <div className="field"><label>Weekly</label><input name="weekly_rate" type="number" min="0" step="0.01" defaultValue={rate?.weekly_rate ?? 16} /></div>
-                <div className="field"><label>Monthly</label><input name="monthly_rate" type="number" min="0" step="0.01" defaultValue={rate?.monthly_rate ?? 64} /></div>
-                <div className="field"><label>Termly</label><input name="termly_rate" type="number" min="0" step="0.01" defaultValue={rate?.termly_rate ?? 236} /></div>
-                <button className="button compact" type="submit">Save</button>
+                <div className="field"><label>Daily</label><input name="daily_rate" type="number" min="0" step="0.01" defaultValue={rate?.daily_rate ?? 4} readOnly={!canConfigureRates} /></div>
+                <div className="field"><label>Weekly</label><input name="weekly_rate" type="number" min="0" step="0.01" defaultValue={rate?.weekly_rate ?? 16} readOnly={!canConfigureRates} /></div>
+                <div className="field"><label>Monthly</label><input name="monthly_rate" type="number" min="0" step="0.01" defaultValue={rate?.monthly_rate ?? 64} readOnly={!canConfigureRates} /></div>
+                <div className="field"><label>Termly</label><input name="termly_rate" type="number" min="0" step="0.01" defaultValue={rate?.termly_rate ?? 236} readOnly={!canConfigureRates} /></div>
+                {canConfigureRates ? <button className="button compact" type="submit">Save</button> : null}
               </form>
             );
           })}
