@@ -64,6 +64,7 @@ export async function recordFeedingPaymentAction(formData: FormData) {
     p_term_id: termId,
     p_frequency: value(formData, "frequency"),
     p_payment_date: value(formData, "payment_date") || null,
+    p_coverage_start: value(formData, "coverage_start") || null,
     p_payment_method: value(formData, "payment_method") || null,
     p_reference: value(formData, "reference") || null,
     p_remarks: value(formData, "remarks") || null,
