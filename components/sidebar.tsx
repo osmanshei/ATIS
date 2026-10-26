@@ -66,7 +66,11 @@ export function Sidebar({ profile }: { profile: CurrentProfile }) {
         {items.map((item) => {
           const active =
             pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+            (
+              item.href !== "/dashboard" &&
+              pathname.startsWith(item.href + "/") &&
+              !(item.href === "/payroll" && pathname.startsWith("/payroll/attendance"))
+            );
           const label =
             profile.role === "teacher" && item.href === "/teacher-assignments"
               ? "My Teaching"
