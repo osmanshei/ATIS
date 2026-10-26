@@ -89,7 +89,9 @@ export default async function PayrollPage({
         </div>
         <div className="hero-actions">
           <Link className="button hero-button" href="/payroll/settings">Payroll Settings</Link>
-          <Link className="button secondary hero-secondary" href="/payroll/attendance">Staff Attendance</Link>
+          {["admin", "supervisor"].includes(profile.role) ? (
+            <Link className="button secondary hero-secondary" href="/payroll/attendance">Staff Attendance</Link>
+          ) : null}
           <Link className="button secondary hero-secondary" href="/finance/vouchers">Payment Vouchers</Link>
         </div>
       </section>
