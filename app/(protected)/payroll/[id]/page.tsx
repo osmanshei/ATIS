@@ -11,16 +11,24 @@ function money(value: number | string | null | undefined) {
   return "GHS " + Number(value || 0).toFixed(2);
 }
 
-function detailsToText(value: unknown) {
-  if (!Array.isArray(value)) return "";
-  return value
+function rows(value: unknown) {
+  return Array.isArray(value) ? value : [];
+}
+
+function manualDetailsToText(value: unknown) {
+  return rows(value)
+    .filter((row: any) => row?.type === "manual")
     .map((row: any) => {
-      const label = String(row?.label || "").trim();
+      const label = String(row?.label || row?.name || "").trim();
       const amount = Number(row?.amount || 0);
       return label ? label + ": " + amount.toFixed(2) : "";
     })
     .filter(Boolean)
     .join("\n");
+}
+
+function automaticDetails(value: unknown) {
+  return rows(value).filter((row: any) => row?.type !== "manual");
 }
 
 export default async function PayrollRunPage({
@@ -35,16 +43,8 @@ export default async function PayrollRunPage({
   const query = await searchParams;
 
   const [{ data: run }, { data: items }, { data: voucher }] = await Promise.all([
-    supabase
-      .from("payroll_run_summary")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle(),
-    supabase
-      .from("payroll_item_summary")
-      .select("*")
-      .eq("payroll_run_id", id)
-      .order("full_name"),
+    supabase.from("payroll_run_summary").select("*").eq("id", id).maybeSingle(),
+    supabase.from("payroll_item_summary").select("*").eq("payroll_run_id", id).order("full_name"),
     supabase
       .from("payment_voucher_summary")
       .select("id,voucher_no,status,amount")
@@ -67,9 +67,9 @@ export default async function PayrollRunPage({
         </div>
         <div className="action-row">
           <Link className="button secondary" href="/payroll">Back to Payroll</Link>
-          {voucher ? (
-            <Link className="button secondary" href={"/finance/vouchers/" + voucher.id}>Open PV</Link>
-          ) : null}
+          <Link className="button secondary" href="/payroll/settings">Settings</Link>
+          <Link className="button secondary" href="/payroll/attendance">Staff Attendance</Link>
+          {voucher ? <Link className="button secondary" href={"/finance/vouchers/" + voucher.id}>Open PV</Link> : null}
         </div>
       </div>
 
@@ -77,7 +77,7 @@ export default async function PayrollRunPage({
       {query.error ? <div className="notice error">{query.error}</div> : null}
 
       <div className="cards cards-five">
-        <div className="metric-card"><span className="metric-kicker">Base salary</span><strong>{money(run.base_total)}</strong></div>
+        <div className="metric-card"><span className="metric-kicker">Base pay</span><strong>{money(run.base_total)}</strong></div>
         <div className="metric-card"><span className="metric-kicker">Allowances</span><strong>{money(run.allowance_total)}</strong></div>
         <div className="metric-card"><span className="metric-kicker">Gross payroll</span><strong>{money(run.gross_total)}</strong></div>
         <div className="metric-card"><span className="metric-kicker">Deductions</span><strong>{money(run.deduction_total)}</strong></div>
@@ -133,73 +133,113 @@ export default async function PayrollRunPage({
         </div>
 
         <div className="payroll-item-list">
-          {(items || []).map((item: any) => (
-            <form className="card payroll-item-form" action={savePayrollItemAction} key={item.id}>
-              <input type="hidden" name="item_id" value={item.id} />
-              <input type="hidden" name="run_id" value={id} />
+          {(items || []).map((item: any) => {
+            const autoAllowances = automaticDetails(item.allowance_details);
+            const autoDeductions = automaticDetails(item.deduction_details);
 
-              <div className="payroll-person">
-                <strong>{item.full_name}</strong>
-                <small>{item.employee_code || "No employee code"} · {item.position_title || "Staff"}</small>
-                <small>{item.contract_no || "No contract number"}</small>
-              </div>
+            return (
+              <form className="card payroll-item-form legacy-payroll-item" action={savePayrollItemAction} key={item.id}>
+                <input type="hidden" name="item_id" value={item.id} />
+                <input type="hidden" name="run_id" value={id} />
 
-              <div className="field">
-                <label>Base salary</label>
-                <input value={Number(item.base_salary || 0).toFixed(2)} readOnly />
-              </div>
+                <div className="payroll-person">
+                  <strong>{item.full_name}</strong>
+                  <small>{item.employee_code || "No employee code"} · {item.position_title || "Staff"}</small>
+                  <small>{item.early_days || 0} early day(s) / {item.total_attendance || 0} attendance day(s)</small>
+                  <small>{item.service_years || 0} completed service year(s)</small>
+                </div>
 
-              <div className="field">
-                <label>Allowances</label>
-                <input name="allowances" type="number" min="0" step="0.01" defaultValue={Number(item.allowances || 0).toFixed(2)} readOnly={!editable} />
-              </div>
+                <div className="field">
+                  <label>Base pay</label>
+                  <input value={Number(item.base_salary || 0).toFixed(2)} readOnly />
+                </div>
 
-              <div className="field">
-                <label>Deductions</label>
-                <input name="deductions" type="number" min="0" step="0.01" defaultValue={Number(item.deductions || 0).toFixed(2)} readOnly={!editable} />
-              </div>
+                <div className="field">
+                  <label>Automatic allowances</label>
+                  <input value={Number(item.automatic_allowances || 0).toFixed(2)} readOnly />
+                </div>
 
-              <div className="payroll-net">
-                <span>Net pay</span>
-                <strong>{money(item.net_pay)}</strong>
-              </div>
+                <div className="field">
+                  <label>Other allowances</label>
+                  <input name="other_allowances" type="number" min="0" step="0.01" defaultValue={Number(item.other_allowances || 0).toFixed(2)} readOnly={!editable} />
+                </div>
 
-              {editable ? (
-                <>
-                  <div className="field payroll-detail-field">
-                    <label>Allowance breakdown</label>
-                    <textarea
-                      name="allowance_details"
-                      rows={2}
-                      defaultValue={detailsToText(item.allowance_details)}
-                      placeholder={"Transport: 100.00\nResponsibility: 50.00"}
-                    />
-                    <small>One item per line: Name: Amount</small>
-                  </div>
+                <div className="field">
+                  <label>SSNIT / Statutory</label>
+                  <input value={Number(item.ssnit_deduction || 0).toFixed(2)} readOnly />
+                </div>
 
-                  <div className="field payroll-detail-field">
-                    <label>Deduction breakdown</label>
-                    <textarea
-                      name="deduction_details"
-                      rows={2}
-                      defaultValue={detailsToText(item.deduction_details)}
-                      placeholder={"Advance: 50.00\nOther: 20.00"}
-                    />
-                    <small>One item per line: Name: Amount</small>
-                  </div>
+                <div className="field">
+                  <label>Loan deduction</label>
+                  <input value={Number(item.loan_deduction || 0).toFixed(2)} readOnly />
+                </div>
 
-                  <div className="field">
-                    <label>Remarks</label>
-                    <input name="remarks" defaultValue={item.remarks || ""} />
-                  </div>
+                <div className="field">
+                  <label>Other deductions</label>
+                  <input name="other_deductions" type="number" min="0" step="0.01" defaultValue={Number(item.other_deductions || 0).toFixed(2)} readOnly={!editable} />
+                </div>
 
-                  <button className="button compact" type="submit">Save</button>
-                </>
-              ) : (
-                <Link className="button secondary compact" href={"/payroll/payslip/" + item.id}>Payslip</Link>
-              )}
-            </form>
-          ))}
+                <div className="payroll-net">
+                  <span>Net pay</span>
+                  <strong>{money(item.net_pay)}</strong>
+                </div>
+
+                <div className="payroll-auto-breakdown">
+                  <strong>Automatic earnings</strong>
+                  {autoAllowances.length ? autoAllowances.map((row: any, index: number) => (
+                    <small key={"aa" + index}>
+                      {row.name || row.label || "Allowance"}: {money(row.amount)}
+                      {row.detail ? " · " + row.detail : ""}
+                    </small>
+                  )) : <small>No automatic allowances</small>}
+                </div>
+
+                <div className="payroll-auto-breakdown">
+                  <strong>Automatic deductions</strong>
+                  {autoDeductions.length ? autoDeductions.map((row: any, index: number) => (
+                    <small key={"ad" + index}>
+                      {row.name || row.label || "Deduction"}: {money(row.amount || row.deduction)}
+                    </small>
+                  )) : <small>No automatic deductions</small>}
+                </div>
+
+                {editable ? (
+                  <>
+                    <div className="field payroll-detail-field">
+                      <label>Other allowance breakdown</label>
+                      <textarea
+                        name="allowance_details"
+                        rows={2}
+                        defaultValue={manualDetailsToText(item.allowance_details)}
+                        placeholder={"Responsibility: 100.00\nTransport: 50.00"}
+                      />
+                      <small>Only discretionary/manual items. One per line: Name: Amount</small>
+                    </div>
+
+                    <div className="field payroll-detail-field">
+                      <label>Other deduction breakdown</label>
+                      <textarea
+                        name="deduction_details"
+                        rows={2}
+                        defaultValue={manualDetailsToText(item.deduction_details)}
+                        placeholder={"Advance: 50.00\nOther: 20.00"}
+                      />
+                      <small>Only discretionary/manual items. One per line: Name: Amount</small>
+                    </div>
+
+                    <div className="field">
+                      <label>Remarks</label>
+                      <input name="remarks" defaultValue={item.remarks || ""} />
+                    </div>
+
+                    <button className="button compact" type="submit">Save Adjustments</button>
+                  </>
+                ) : (
+                  <Link className="button secondary compact" href={"/payroll/payslip/" + item.id}>Payslip</Link>
+                )}
+              </form>
+            );
+          })}
         </div>
       </section>
     </>
