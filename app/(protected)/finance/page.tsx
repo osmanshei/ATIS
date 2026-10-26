@@ -125,6 +125,12 @@ export default async function FinancePage({
         <Link className="finance-shortcut" href={"/finance/balances?term=" + termId}>
           <span>BL</span><strong>Balances</strong><small>Review student debt and credits</small>
         </Link>
+        <Link className="finance-shortcut" href="/finance/vouchers">
+          <span>PV</span><strong>Payment Vouchers</strong><small>Prepare, approve and print expenditure vouchers</small>
+        </Link>
+        <Link className="finance-shortcut" href="/payroll">
+          <span>PR</span><strong>Payroll</strong><small>Generate payroll and staff payslips</small>
+        </Link>
       </div>
 
       <section className="panel-section">
