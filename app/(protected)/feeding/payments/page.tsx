@@ -67,8 +67,8 @@ export default async function FeedingPaymentsPage({
           .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
-      .from("feeding_payments")
-      .select("id,payment_date,receipt_no,student_id,frequency,coverage_label,amount,payment_method")
+      .from("feeding_payment_summary")
+      .select("id,payment_date,receipt_no,student_id,admission_number,first_name,middle_name,last_name,frequency,coverage_label,amount,payment_method")
       .eq("term_id", termId)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -160,6 +160,10 @@ export default async function FeedingPaymentsPage({
                 <input name="payment_date" type="date" defaultValue={new Date().toISOString().slice(0,10)} required />
               </div>
               <div className="field">
+                <label>Coverage starts</label>
+                <input name="coverage_start" type="date" defaultValue={new Date().toISOString().slice(0,10)} required />
+              </div>
+              <div className="field">
                 <label>Amount override (optional)</label>
                 <input name="amount" type="number" min="0.01" step="0.01" placeholder="Use configured rate" />
               </div>
@@ -187,11 +191,11 @@ export default async function FeedingPaymentsPage({
         <div className="section-heading"><div><div className="eyebrow">Recent</div><h2>Feeding payments</h2></div></div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Receipt</th><th>Student ID</th><th>Frequency</th><th>Coverage</th><th>Amount</th><th>Method</th></tr></thead>
+            <thead><tr><th>Date</th><th>Receipt</th><th>Student</th><th>Frequency</th><th>Coverage</th><th>Amount</th><th>Method</th></tr></thead>
             <tbody>
               {(recent || []).map((row: any) => (
                 <tr key={row.id}>
-                  <td>{row.payment_date}</td><td><strong>{row.receipt_no}</strong></td><td>{row.student_id}</td>
+                  <td>{row.payment_date}</td><td><strong>{row.receipt_no}</strong></td><td>{fullName(row)}<small className="block-muted">{row.admission_number || "—"}</small></td>
                   <td>{row.frequency}</td><td>{row.coverage_label || "—"}</td><td>{money(row.amount)}</td><td>{row.payment_method || "—"}</td>
                 </tr>
               ))}
