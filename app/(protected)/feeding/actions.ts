@@ -8,56 +8,82 @@ function value(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
 }
 
-export async function saveFeedingRegisterAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk", "staff"]);
-  const classId = value(formData, "class_id");
-  const date = value(formData, "feeding_date");
+export async function saveFeedingRateAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
 
-  const records: Array<{ student_id: string; status: string; remark: string }> = [];
-  for (const [key, raw] of formData.entries()) {
-    if (!key.startsWith("status_")) continue;
-    const studentId = key.slice("status_".length);
-    records.push({
-      student_id: studentId,
-      status: String(raw || "not_fed"),
-      remark: value(formData, "remark_" + studentId),
-    });
-  }
+  const payload = {
+    term_id: value(formData, "term_id"),
+    class_id: value(formData, "class_id"),
+    daily_rate: value(formData, "daily_rate"),
+    weekly_rate: value(formData, "weekly_rate"),
+    monthly_rate: value(formData, "monthly_rate"),
+    termly_rate: value(formData, "termly_rate"),
+    status: value(formData, "status") || "active",
+    notes: value(formData, "notes"),
+  };
 
-  const { error } = await supabase.rpc("save_feeding_register", {
-    p_class_id: classId,
-    p_feeding_date: date,
-    p_unit_cost: Number(value(formData, "unit_cost") || 0),
-    p_records: records,
-    p_supplier: value(formData, "supplier") || null,
-    p_notes: value(formData, "notes") || null,
-    p_meal_name: value(formData, "meal_name") || "Lunch",
-  });
-
-  const back = "/feeding/register?class=" + encodeURIComponent(classId) + "&date=" + encodeURIComponent(date);
-  if (error) redirect(back + "&error=" + encodeURIComponent(error.message));
+  const { error } = await supabase.rpc("save_feeding_rate", { p_payload: payload });
+  if (error) redirect("/feeding/settings?error=" + encodeURIComponent(error.message));
 
   revalidatePath("/feeding");
-  revalidatePath("/feeding/register");
-  redirect(back + "&ok=" + encodeURIComponent("Feeding register saved."));
+  revalidatePath("/feeding/settings");
+  revalidatePath("/feeding/payments");
+  redirect("/feeding/settings?ok=" + encodeURIComponent("Feeding rate saved."));
 }
 
-export async function setFeedingLockAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor"]);
-  const sessionId = value(formData, "session_id");
-  const classId = value(formData, "class_id");
-  const date = value(formData, "feeding_date");
-  const locked = value(formData, "locked") === "true";
+export async function saveStudentFeedingPlanAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
 
-  const { error } = await supabase.rpc("set_feeding_lock", {
-    p_session_id: sessionId,
-    p_locked: locked,
-  });
+  const payload = {
+    term_id: value(formData, "term_id"),
+    student_id: value(formData, "student_id"),
+    frequency: value(formData, "frequency") || "daily",
+    related_staff_id: value(formData, "related_staff_id"),
+    status: "active",
+    notes: value(formData, "notes"),
+  };
 
-  const back = "/feeding/register?class=" + encodeURIComponent(classId) + "&date=" + encodeURIComponent(date);
+  const { error } = await supabase.rpc("save_student_feeding_plan", { p_payload: payload });
+  const back = "/feeding/settings?term=" + encodeURIComponent(payload.term_id);
+
   if (error) redirect(back + "&error=" + encodeURIComponent(error.message));
 
   revalidatePath("/feeding");
+  revalidatePath("/feeding/settings");
+  revalidatePath("/feeding/payments");
+  redirect(back + "&ok=" + encodeURIComponent("Student feeding plan saved."));
+}
+
+export async function recordFeedingPaymentAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const studentId = value(formData, "student_id");
+  const termId = value(formData, "term_id");
+
+  const { data, error } = await supabase.rpc("record_feeding_payment", {
+    p_student_id: studentId,
+    p_term_id: termId,
+    p_frequency: value(formData, "frequency"),
+    p_payment_date: value(formData, "payment_date") || null,
+    p_payment_method: value(formData, "payment_method") || null,
+    p_reference: value(formData, "reference") || null,
+    p_remarks: value(formData, "remarks") || null,
+    p_amount: value(formData, "amount") ? Number(value(formData, "amount")) : null,
+  });
+
+  const back =
+    "/feeding/payments?term=" +
+    encodeURIComponent(termId) +
+    "&student=" +
+    encodeURIComponent(studentId);
+
+  if (error) redirect(back + "&error=" + encodeURIComponent(error.message));
+
+  revalidatePath("/feeding");
+  revalidatePath("/feeding/payments");
   revalidatePath("/feeding/register");
-  redirect(back + "&ok=" + encodeURIComponent(locked ? "Feeding register locked." : "Feeding register unlocked."));
+  redirect(
+    back +
+      "&ok=" +
+      encodeURIComponent("Feeding payment recorded. Receipt: " + String(data || "")),
+  );
 }
