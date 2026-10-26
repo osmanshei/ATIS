@@ -247,6 +247,21 @@ begin
 end;
 $$;
 
+create or replace function public.resync_student_feeding(
+  p_student_id uuid,
+  p_term_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path=public
+as $
+begin
+  -- Replaced with the full implementation later in this migration.
+  return;
+end;
+$;
+
 create or replace function public.save_student_feeding_plan(p_payload jsonb)
 returns uuid
 language plpgsql
@@ -551,9 +566,10 @@ begin
     perform public.resync_student_feeding(v_student,v_term);
   end if;
 
-  return coalesce(new,old);
+  if tg_op='DELETE' then return old; end if;
+  return new;
 end;
-$$;
+$;
 
 drop trigger if exists sync_feeding_on_attendance_change on public.attendance_records;
 create trigger sync_feeding_on_attendance_change
@@ -1321,6 +1337,8 @@ declare
   v_counter bigint;
   r record;
   v_deduct numeric;
+  v_loan_json jsonb;
+  v_repayment uuid;
 begin
   if not public.is_payroll_finance_user() then raise exception 'Payroll access is required'; end if;
   v_school:=public.current_school_id();
@@ -1342,29 +1360,24 @@ begin
     loop
       v_deduct:=(v_loan_json->>'deduction')::numeric;
 
+      v_repayment:=null;
       insert into public.staff_loan_repayments(
         school_id,loan_id,payroll_run_id,payroll_item_id,amount,repayment_date,created_by
       ) values(
         v_school,(v_loan_json->>'loanId')::uuid,p_run_id,r.item_id,v_deduct,p_pay_date,auth.uid()
       )
-      on conflict(loan_id,payroll_run_id) do nothing;
+      on conflict(loan_id,payroll_run_id) do nothing
+      returning id into v_repayment;
 
-      update public.staff_loans
-      set
-        amount_paid=least(principal,amount_paid+v_deduct),
-        balance=greatest(balance-v_deduct,0),
-        status=case when greatest(balance-v_deduct,0)=0 then 'cleared' else status end,
-        updated_at=now()
-      where id=(v_loan_json->>'loanId')::uuid
-        and not exists(
-          select 1 from public.staff_loan_repayments sr
-          where sr.loan_id=(v_loan_json->>'loanId')::uuid
-            and sr.payroll_run_id=p_run_id
-            and sr.id is distinct from (
-              select max(id) from public.staff_loan_repayments
-              where loan_id=(v_loan_json->>'loanId')::uuid and payroll_run_id=p_run_id
-            )
-        );
+      if v_repayment is not null then
+        update public.staff_loans
+        set
+          amount_paid=least(principal,amount_paid+v_deduct),
+          balance=greatest(balance-v_deduct,0),
+          status=case when greatest(balance-v_deduct,0)=0 then 'cleared' else status end,
+          updated_at=now()
+        where id=(v_loan_json->>'loanId')::uuid;
+      end if;
     end loop;
   end loop;
 
