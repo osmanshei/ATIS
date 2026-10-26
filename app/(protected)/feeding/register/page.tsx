@@ -15,7 +15,7 @@ export default async function FeedingRegisterPage({
 }: {
   searchParams: Promise<{ class?: string; date?: string }>;
 }) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk", "staff"]);
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
   const params = await searchParams;
   const classId = params.class || "";
   const date = params.date || new Date().toISOString().slice(0, 10);
