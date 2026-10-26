@@ -46,15 +46,23 @@ export async function savePayrollItemAction(formData: FormData) {
   const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
   const itemId = value(formData, "item_id");
   const runId = value(formData, "run_id");
-  const allowances = Number(value(formData, "other_allowances") || 0);
-  const deductions = Number(value(formData, "other_deductions") || 0);
+  const allowanceDetails = detailsFromText(value(formData, "allowance_details"));
+  const deductionDetails = detailsFromText(value(formData, "deduction_details"));
+  const typedAllowances = Number(value(formData, "other_allowances") || 0);
+  const typedDeductions = Number(value(formData, "other_deductions") || 0);
+  const allowances = allowanceDetails.length
+    ? allowanceDetails.reduce((sum, row) => sum + Number(row.amount || 0), 0)
+    : typedAllowances;
+  const deductions = deductionDetails.length
+    ? deductionDetails.reduce((sum, row) => sum + Number(row.amount || 0), 0)
+    : typedDeductions;
 
   const { error } = await supabase.rpc("save_payroll_item", {
     p_item_id: itemId,
     p_allowances: allowances,
     p_deductions: deductions,
-    p_allowance_details: detailsFromText(value(formData, "allowance_details")),
-    p_deduction_details: detailsFromText(value(formData, "deduction_details")),
+    p_allowance_details: allowanceDetails,
+    p_deduction_details: deductionDetails,
     p_remarks: value(formData, "remarks") || null,
   });
 
