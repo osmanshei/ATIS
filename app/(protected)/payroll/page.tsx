@@ -30,6 +30,7 @@ export default async function PayrollPage({
     const { data: slips, error } = await supabase
       .from("payroll_item_summary")
       .select("id,run_no,payroll_month,payroll_title,payroll_status,pay_date,base_salary,allowances,deductions,gross_pay,net_pay")
+      .eq("payroll_status", "paid")
       .order("payroll_month", { ascending: false });
 
     return (
@@ -84,9 +85,11 @@ export default async function PayrollPage({
         <div>
           <div className="eyebrow">Payroll workspace · {profile.role}</div>
           <h1>Payroll & Payslips</h1>
-          <p>Generate monthly payroll from active staff contracts, review adjustments, approve payment and print payslips.</p>
+          <p>Generate monthly payroll from staff categories and payroll profiles, apply automatic allowances and loans, approve payment and print payslips.</p>
         </div>
         <div className="hero-actions">
+          <Link className="button hero-button" href="/payroll/settings">Payroll Settings</Link>
+          <Link className="button secondary hero-secondary" href="/payroll/attendance">Staff Attendance</Link>
           <Link className="button secondary hero-secondary" href="/finance/vouchers">Payment Vouchers</Link>
         </div>
       </section>
@@ -108,7 +111,7 @@ export default async function PayrollPage({
           </div>
           <button className="button" type="submit">Generate Payroll</button>
         </form>
-        <p className="muted">Base salary is copied from each staff member's active contract for that month.</p>
+        <p className="muted">Base pay comes from each staff member's payroll category/profile. Early attendance, long service, assigned allowances, statutory deductions and active loans are calculated automatically.</p>
       </section>
 
       <div className="table-wrap">
