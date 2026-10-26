@@ -131,6 +131,9 @@ export default async function FinancePage({
         <Link className="finance-shortcut" href="/payroll">
           <span>PR</span><strong>Payroll</strong><small>Generate payroll and staff payslips</small>
         </Link>
+        <Link className="finance-shortcut" href="/feeding">
+          <span>FD</span><strong>Feeding</strong><small>Record feeding payments and monitor attendance-linked charges</small>
+        </Link>
       </div>
 
       <section className="panel-section">
