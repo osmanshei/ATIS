@@ -1365,8 +1365,12 @@ begin
     other_deductions=greatest(coalesce(p_deductions,0),0),
     allowances=v_auto_allow+greatest(coalesce(p_allowances,0),0),
     deductions=v_ssnit+v_loan+greatest(coalesce(p_deductions,0),0),
-    allowance_details=coalesce(allowance_details,'[]'::jsonb)||coalesce(p_allowance_details,'[]'::jsonb),
-    deduction_details=coalesce(deduction_details,'[]'::jsonb)||coalesce(p_deduction_details,'[]'::jsonb),
+    allowance_details=
+      jsonb_path_query_array(coalesce(allowance_details,'[]'::jsonb), '$[*] ? (@.type != "manual")')
+      || coalesce(p_allowance_details,'[]'::jsonb),
+    deduction_details=
+      jsonb_path_query_array(coalesce(deduction_details,'[]'::jsonb), '$[*] ? (@.type != "manual")')
+      || coalesce(p_deduction_details,'[]'::jsonb),
     remarks=nullif(trim(coalesce(p_remarks,'')),''),
     updated_at=now()
   where id=p_item_id;
