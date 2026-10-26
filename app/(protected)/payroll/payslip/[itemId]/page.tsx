@@ -15,7 +15,7 @@ export default async function PayslipPage({
 }: {
   params: Promise<{ itemId: string }>;
 }) {
-  const { supabase } = await requireProfile([
+  const { supabase, profile } = await requireProfile([
     "admin",
     "supervisor",
     "accountant",
@@ -31,6 +31,9 @@ export default async function PayslipPage({
   ]);
 
   if (!item) notFound();
+
+  const management = ["admin", "supervisor", "accountant"].includes(profile.role);
+  if (!management && item.payroll_status !== "paid") notFound();
 
   return (
     <div className="print-document payslip-sheet">
