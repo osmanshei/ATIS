@@ -439,6 +439,7 @@ create or replace function public.record_feeding_payment(
   p_term_id uuid,
   p_frequency text,
   p_payment_date date default current_date,
+  p_coverage_start date default null,
   p_payment_method text default null,
   p_reference text default null,
   p_remarks text default null,
@@ -489,7 +490,7 @@ begin
   );
   if coalesce(v_amount,0)<=0 then raise exception 'Configure a feeding rate before recording payment'; end if;
 
-  v_start:=coalesce(p_payment_date,current_date);
+  v_start:=coalesce(p_coverage_start,p_payment_date,current_date);
   v_end:=case p_frequency
     when 'daily' then v_start
     when 'weekly' then v_start+6
@@ -581,6 +582,40 @@ drop trigger if exists sync_feeding_on_attendance_change on public.attendance_re
 create trigger sync_feeding_on_attendance_change
 after insert or update or delete on public.attendance_records
 for each row execute function public.sync_feeding_after_attendance();
+
+create or replace view public.feeding_staff_directory
+with (security_invoker=false)
+as
+select
+  s.id,
+  s.school_id,
+  s.full_name,
+  s.employee_code,
+  s.role
+from public.staff s
+where s.school_id=public.current_school_id()
+  and s.status='active'
+  and public.current_app_role() in ('admin','supervisor','accountant','clerk');
+
+grant select on public.feeding_staff_directory to authenticated;
+
+create or replace view public.feeding_payment_summary
+with (security_invoker=true)
+as
+select
+  fp.*,
+  st.admission_number,
+  st.first_name,
+  st.middle_name,
+  st.last_name,
+  st.class_id,
+  c.class_name,
+  c.section
+from public.feeding_payments fp
+join public.students st on st.id=fp.student_id
+left join public.classes c on c.id=st.class_id;
+
+grant select on public.feeding_payment_summary to authenticated;
 
 create or replace view public.feeding_student_balance
 with (security_invoker=true)
@@ -702,6 +737,19 @@ from public.classes c
 join public.terms t on t.school_id=c.school_id and t.academic_year_id=c.academic_year_id and t.is_current=true
 where c.is_active=true
 on conflict(term_id,class_id) do nothing;
+
+create or replace function public.can_manage_feeding()
+returns boolean
+language sql
+stable
+security definer
+set search_path=public
+as $$
+  select coalesce(public.current_app_role() in ('admin','supervisor','clerk'),false)
+$$;
+
+revoke all on function public.save_feeding_register(uuid,date,numeric,jsonb,text,text,text) from authenticated;
+revoke all on function public.set_feeding_lock(uuid,boolean) from authenticated;
 
 -- ===========================================================================
 -- PAYROLL: categories, profiles, automatic allowances, attendance and loans
@@ -908,7 +956,7 @@ insert into public.payroll_settings(school_id,key,value,description)
 select id,'EARLY_ALLOWANCE_MIN_DAYS',15,'Minimum qualifying early-attendance days in a payroll month' from public.schools
 on conflict(school_id,key) do nothing;
 insert into public.payroll_settings(school_id,key,value,description)
-select id,'LONG_SERVICE_PER_YEAR',10,'Long-service allowance per completed year' from public.schools
+select id,'RETENTION_BONUS_PER_YEAR',10,'Long-service / retention allowance per completed year' from public.schools
 on conflict(school_id,key) do nothing;
 
 insert into public.payroll_allowance_types(school_id,name,calculation_type,default_amount,notes)
@@ -1215,7 +1263,7 @@ begin
 
   select coalesce(max(value) filter(where key='EARLY_ALLOWANCE_MIN_DAYS'),15),
          coalesce(max(value) filter(where key='EARLY_ALLOWANCE_AMOUNT'),50),
-         coalesce(max(value) filter(where key='LONG_SERVICE_PER_YEAR'),10),
+         coalesce(max(value) filter(where key='RETENTION_BONUS_PER_YEAR'),10),
          coalesce(max(value) filter(where key='EMPLOYEE_SSNIT_RATE'),0)
   into v_early_min,v_early_amount,v_long_rate,v_default_ssnit
   from public.payroll_settings where school_id=v_school;
@@ -1599,7 +1647,7 @@ grant select on public.payroll_item_summary to authenticated;
 -- Function permissions
 revoke all on function public.save_feeding_rate(jsonb) from public;
 revoke all on function public.save_student_feeding_plan(jsonb) from public;
-revoke all on function public.record_feeding_payment(uuid,uuid,text,date,text,text,text,numeric) from public;
+revoke all on function public.record_feeding_payment(uuid,uuid,text,date,date,text,text,text,numeric) from public;
 revoke all on function public.resync_student_feeding(uuid,uuid) from public;
 revoke all on function public.save_payroll_setting(text,numeric,text) from public;
 revoke all on function public.save_payroll_allowance_type(jsonb) from public;
@@ -1611,7 +1659,7 @@ revoke all on function public.save_staff_attendance(uuid,date,time,text,boolean,
 
 grant execute on function public.save_feeding_rate(jsonb) to authenticated;
 grant execute on function public.save_student_feeding_plan(jsonb) to authenticated;
-grant execute on function public.record_feeding_payment(uuid,uuid,text,date,text,text,text,numeric) to authenticated;
+grant execute on function public.record_feeding_payment(uuid,uuid,text,date,date,text,text,text,numeric) to authenticated;
 grant execute on function public.resync_student_feeding(uuid,uuid) to authenticated;
 grant execute on function public.save_payroll_setting(text,numeric,text) to authenticated;
 grant execute on function public.save_payroll_allowance_type(jsonb) to authenticated;
