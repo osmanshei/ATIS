@@ -102,7 +102,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/feeding",
     label: "Feeding",
     short: "FD",
-    roles: ["admin", "supervisor", "accountant", "clerk", "staff"],
+    roles: ["admin", "supervisor", "accountant", "clerk"],
   },
   {
     href: "/portal-access",
