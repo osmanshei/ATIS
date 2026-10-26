@@ -27,7 +27,8 @@ export default async function LoginPage({
         <div className="login-card">
           <h2>Sign in</h2>
           <p>Use your ATIS username or email address.</p>
-          {params.message ? <div className="notice success">{params.message}</div> : null}\n          {params.error ? <div className="notice error">{params.error}</div> : null}
+          {params.message ? <div className="notice success">{params.message}</div> : null}
+          {params.error ? <div className="notice error">{params.error}</div> : null}
           <form action={loginAction}>
             <div className="field">
               <label htmlFor="identifier">Username or email</label>
