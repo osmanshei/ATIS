@@ -1,8 +1,13 @@
 import { requireProfile } from "@/lib/auth";
 import { ChangePasswordForm } from "@/components/change-password-form";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
   const { profile } = await requireProfile();
+  const params = await searchParams;
 
   return (
     <>
@@ -12,6 +17,8 @@ export default async function AccountPage() {
           <p>Manage your ATIS login details.</p>
         </div>
       </div>
+
+      {params.error ? <div className="notice error">{params.error}</div> : null}
 
       {profile.must_change_password ? (
         <div className="notice">
