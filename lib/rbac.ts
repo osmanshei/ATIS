@@ -93,6 +93,18 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "supervisor", "accountant"],
   },
   {
+    href: "/payroll",
+    label: "Payroll & Payslips",
+    short: "PR",
+    roles: ["admin", "supervisor", "accountant", "teacher", "clerk", "staff"],
+  },
+  {
+    href: "/feeding",
+    label: "Feeding",
+    short: "FD",
+    roles: ["admin", "supervisor", "accountant", "clerk", "staff"],
+  },
+  {
     href: "/portal-access",
     label: "Parent & Student Portals",
     short: "PA",
