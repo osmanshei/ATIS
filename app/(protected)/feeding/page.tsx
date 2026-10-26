@@ -12,7 +12,7 @@ function today() {
 export default async function FeedingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; ok?: string; error?: string }>;
+  searchParams: Promise<{ date?: string }>;
 }) {
   const { supabase, profile } = await requireProfile([
     "admin",
@@ -23,9 +23,8 @@ export default async function FeedingPage({
   ]);
   const params = await searchParams;
   const date = params.date || today();
-  const canManage = ["admin", "supervisor", "clerk", "staff"].includes(profile.role);
 
-  const [{ data: classes }, { data: sessions }, { data: currentTerm }] = await Promise.all([
+  const [{ data: classes }, { data: dailyRows }, { data: currentTerm }] = await Promise.all([
     supabase
       .from("class_summary")
       .select("id,class_name,section,total_strength,grade_level,is_active")
@@ -33,48 +32,70 @@ export default async function FeedingPage({
       .order("grade_level", { nullsFirst: true })
       .order("class_name"),
     supabase
-      .from("feeding_session_summary")
-      .select("id,class_id,class_name,section,feeding_date,meal_name,unit_cost,fed_count,not_fed_count,exempt_count,actual_cost,is_locked")
-      .eq("feeding_date", date)
-      .order("class_name"),
+      .from("feeding_daily_register")
+      .select("class_id,class_name,section,student_id,attendance_status,payment_mark,daily_charge,credit_balance")
+      .eq("feeding_date", date),
     supabase
       .from("terms")
-      .select("id,name,academic_year_id,starts_on,ends_on")
+      .select("id,name,is_current")
       .eq("is_current", true)
       .maybeSingle(),
   ]);
 
-  let termSessions: any[] = [];
+  const rows = dailyRows || [];
+  const classMap = new Map<string, any[]>();
+  rows.forEach((row: any) => {
+    const bucket = classMap.get(row.class_id) || [];
+    bucket.push(row);
+    classMap.set(row.class_id, bucket);
+  });
+
+  let termWallet: any[] = [];
   if (currentTerm) {
     const { data } = await supabase
-      .from("feeding_session_summary")
-      .select("fed_count,actual_cost")
+      .from("feeding_wallet_entries")
+      .select("entry_type,amount")
       .eq("term_id", currentTerm.id);
-    termSessions = data || [];
+    termWallet = data || [];
   }
 
-  const sessionMap = new Map((sessions || []).map((s: any) => [s.class_id, s]));
-  const fedToday = (sessions || []).reduce((sum: number, row: any) => sum + Number(row.fed_count || 0), 0);
-  const costToday = (sessions || []).reduce((sum: number, row: any) => sum + Number(row.actual_cost || 0), 0);
-  const fedTerm = termSessions.reduce((sum: number, row: any) => sum + Number(row.fed_count || 0), 0);
-  const costTerm = termSessions.reduce((sum: number, row: any) => sum + Number(row.actual_cost || 0), 0);
-  const dayOfWeek = new Date(date + "T00:00:00").getUTCDay();
-  const scheduledDay = dayOfWeek >= 1 && dayOfWeek <= 4;
+  const paidToday = rows.filter((r: any) => r.payment_mark === "paid").length;
+  const exemptToday = rows.filter((r: any) => r.payment_mark === "exempt").length;
+  const unpaidToday = rows.filter((r: any) => r.payment_mark === "unpaid").length;
+  const carriedToday = rows.filter((r: any) => r.payment_mark === "credit_carried_forward").length;
+  const consumedToday = rows.reduce((sum: number, r: any) => sum + Number(r.daily_charge || 0), 0);
+  const termPayments = termWallet
+    .filter((r: any) => r.entry_type === "payment")
+    .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0);
+  const termCharges = Math.abs(
+    termWallet
+      .filter((r: any) => r.entry_type === "charge")
+      .reduce((sum: number, r: any) => sum + Number(r.amount || 0), 0),
+  );
+
+  const day = new Date(date + "T00:00:00").getUTCDay();
+  const feedingDay = day >= 1 && day <= 4;
+  const canConfigure = ["admin", "supervisor", "accountant", "clerk"].includes(profile.role);
 
   return (
     <>
       <section className="welcome-hero">
         <div>
-          <div className="eyebrow">School feeding · {date}</div>
+          <div className="eyebrow">Attendance-linked feeding · {date}</div>
           <h1>Feeding Management</h1>
-          <p>Record meals served by class, monitor feeding costs and review daily or term totals.</p>
+          <p>
+            Attendance is the source of truth. Present or late students consume one daily feeding
+            charge; absent students keep their prepaid credit for the next feeding day.
+          </p>
+        </div>
+        <div className="hero-actions">
+          {canConfigure ? <Link className="button hero-button" href="/feeding/payments">Record Payment</Link> : null}
+          {canConfigure ? <Link className="button secondary hero-secondary" href="/feeding/settings">Rates & Plans</Link> : null}
         </div>
       </section>
 
-      {params.ok ? <div className="notice success">{params.ok}</div> : null}
-      {params.error ? <div className="notice error">{params.error}</div> : null}
-      {!scheduledDay ? (
-        <div className="notice">ATIS feeding is normally scheduled from Monday to Thursday. Choose a feeding day to record meals.</div>
+      {!feedingDay ? (
+        <div className="notice">ATIS feeding is normally Monday to Thursday. No automatic feeding charge is created for this date.</div>
       ) : null}
 
       <form className="term-switcher" method="get">
@@ -84,44 +105,30 @@ export default async function FeedingPage({
       </form>
 
       <div className="cards cards-five">
-        <div className="metric-card">
-          <span className="metric-kicker">Classes recorded</span>
-          <strong>{sessions?.length || 0}</strong>
-          <small>of {classes?.length || 0} active classes</small>
-        </div>
-        <div className="metric-card">
-          <span className="metric-kicker">Students fed today</span>
-          <strong>{fedToday}</strong>
-          <small>Recorded meals served</small>
-        </div>
-        <div className="metric-card">
-          <span className="metric-kicker">Today's feeding cost</span>
-          <strong>{money(costToday)}</strong>
-          <small>Based on class unit costs</small>
-        </div>
-        <div className="metric-card">
-          <span className="metric-kicker">Term meals served</span>
-          <strong>{fedTerm}</strong>
-          <small>{currentTerm?.name || "Current term"}</small>
-        </div>
-        <div className="metric-card">
-          <span className="metric-kicker">Term feeding cost</span>
-          <strong>{money(costTerm)}</strong>
-          <small>{currentTerm?.name || "Current term"}</small>
-        </div>
+        <div className="metric-card"><span className="metric-kicker">Paid today</span><strong>{paidToday}</strong><small>Present/late with available credit</small></div>
+        <div className="metric-card"><span className="metric-kicker">Exempt today</span><strong>{exemptToday}</strong><small>Staff/management children and other exemptions</small></div>
+        <div className="metric-card"><span className="metric-kicker">Unpaid today</span><strong>{unpaidToday}</strong><small>Present/late without enough credit</small></div>
+        <div className="metric-card"><span className="metric-kicker">Credit carried forward</span><strong>{carriedToday}</strong><small>Absent students with prepaid balance</small></div>
+        <div className="metric-card"><span className="metric-kicker">Charges today</span><strong>{money(consumedToday)}</strong><small>{currentTerm?.name || "Current term"}: {money(termCharges)} consumed / {money(termPayments)} paid</small></div>
       </div>
 
       <section className="panel-section">
         <div className="section-heading">
           <div>
-            <div className="eyebrow">Daily registers</div>
-            <h2>Class feeding status</h2>
+            <div className="eyebrow">Class feeding</div>
+            <h2>Attendance-linked registers</h2>
           </div>
         </div>
 
         <div className="feeding-class-grid">
           {(classes || []).map((cls: any) => {
-            const session = sessionMap.get(cls.id) as any;
+            const classRows = classMap.get(cls.id) || [];
+            const present = classRows.filter((r: any) => ["present", "late"].includes(r.attendance_status)).length;
+            const paid = classRows.filter((r: any) => r.payment_mark === "paid").length;
+            const exempt = classRows.filter((r: any) => r.payment_mark === "exempt").length;
+            const unpaid = classRows.filter((r: any) => r.payment_mark === "unpaid").length;
+            const attendanceMarked = classRows.length > 0;
+
             return (
               <article className="feeding-class-card" key={cls.id}>
                 <div>
@@ -130,38 +137,20 @@ export default async function FeedingPage({
                   <p>{cls.total_strength || 0} active students</p>
                 </div>
 
-                {session ? (
-                  <div className="feeding-card-stats">
-                    <span className="tag">Recorded</span>
-                    <strong>{session.fed_count} fed</strong>
-                    <small>{session.not_fed_count} not fed · {session.exempt_count} exempt</small>
-                    <small>{money(session.actual_cost)} · {money(session.unit_cost)} per meal</small>
-                  </div>
-                ) : (
-                  <div className="feeding-card-stats">
-                    <span className="tag gray">Not recorded</span>
-                    <strong>—</strong>
-                    <small>Feeding register pending</small>
-                  </div>
-                )}
+                <div className="feeding-card-stats">
+                  <span className={attendanceMarked ? "tag" : "tag gray"}>
+                    {attendanceMarked ? "Attendance synced" : "Attendance not marked"}
+                  </span>
+                  <strong>{present} in school</strong>
+                  <small>{paid} paid · {exempt} exempt · {unpaid} unpaid</small>
+                </div>
 
-                {canManage && scheduledDay ? (
-                  <Link
-                    className="button compact"
-                    href={"/feeding/register?class=" + cls.id + "&date=" + date}
-                  >
-                    {session ? "Open Register" : "Record Feeding"}
-                  </Link>
-                ) : null}
+                <Link className="button compact" href={"/feeding/register?class=" + cls.id + "&date=" + date}>
+                  Open Feeding View
+                </Link>
               </article>
             );
           })}
-          {!classes?.length ? (
-            <div className="empty-state">
-              <strong>No active classes</strong>
-              <p>No classes are available for feeding records.</p>
-            </div>
-          ) : null}
         </div>
       </section>
     </>
