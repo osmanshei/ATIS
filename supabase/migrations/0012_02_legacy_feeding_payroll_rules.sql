@@ -966,6 +966,13 @@ insert into public.payroll_allowance_types(school_id,name,calculation_type,defau
 select id,'Long Service Allowance','system_long_service',10,'Automatic amount per completed year of service' from public.schools
 on conflict(school_id,name) do nothing;
 
+insert into public.payroll_allowance_types(school_id,name,calculation_type,default_amount,notes)
+select id,'Feeding Allowance','fixed',200,'Legacy ATIS fixed allowance type; assign only where applicable' from public.schools
+on conflict(school_id,name) do nothing;
+insert into public.payroll_allowance_types(school_id,name,calculation_type,default_amount,notes)
+select id,'SSNIT Contribution','fixed',80,'Legacy ATIS allowance type; assign only where school policy requires it' from public.schools
+on conflict(school_id,name) do nothing;
+
 -- Derive initial categories from current staff contracts.
 insert into public.payroll_categories(school_id,category_name,base_pay,notes)
 select
