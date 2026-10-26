@@ -255,12 +255,12 @@ returns void
 language plpgsql
 security definer
 set search_path=public
-as $
+as $$
 begin
   -- Replaced with the full implementation later in this migration.
   return;
 end;
-$;
+$$;
 
 create or replace function public.save_student_feeding_plan(p_payload jsonb)
 returns uuid
