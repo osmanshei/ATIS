@@ -41,7 +41,6 @@ export default async function FeedingSettingsPage({
     supabase
       .from("feeding_staff_directory")
       .select("id,full_name,employee_code,role")
-      .eq("status", "active")
       .order("full_name"),
   ]);
 
