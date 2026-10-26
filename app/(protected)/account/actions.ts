@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -26,24 +27,50 @@ export async function changePasswordAction(
     return { ok: false, message: "The two new password entries do not match." };
   }
   if (currentPassword === password) {
-    return { ok: false, message: "Choose a new password that is different from your current password." };
+    return {
+      ok: false,
+      message: "Choose a new password that is different from your current password.",
+    };
   }
 
   const loginEmail = user.email || profile.email;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+  if (!url || !publishableKey) {
+    return {
+      ok: false,
+      message: "Password change is temporarily unavailable. Please contact the administrator.",
+    };
+  }
 
   try {
-    // Re-authenticate first so the password update is a true self-service change
-    // and is not blocked by an old/stale Supabase session.
-    const { error: reauthError } = await supabase.auth.signInWithPassword({
+    // Verify the current password in an isolated client. This deliberately does
+    // not touch the cookie-backed session that is currently rendering /account.
+    const verifier = createSupabaseClient(url, publishableKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false,
+      },
+    });
+
+    const { error: verifyError } = await verifier.auth.signInWithPassword({
       email: loginEmail,
       password: currentPassword,
     });
 
-    if (reauthError) {
+    if (verifyError) {
       return { ok: false, message: "Your current password is incorrect." };
     }
 
-    const { error: authError } = await supabase.auth.updateUser({ password });
+    const admin = createAdminClient();
+
+    // Change only the currently authenticated user's password.
+    const { error: authError } = await admin.auth.admin.updateUserById(user.id, {
+      password,
+    });
+
     if (authError) {
       return {
         ok: false,
@@ -51,36 +78,19 @@ export async function changePasswordAction(
       };
     }
 
-    // The password is already active at this point. Use the admin client only
-    // to clear the account's temporary-password flag reliably across staff roles.
-    try {
-      const admin = createAdminClient();
-      const { error: profileError } = await admin
-        .from("profiles")
-        .update({
-          must_change_password: false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
+    // Clear the temporary-password flag. A failure here must not undo or mask
+    // the password change that has already succeeded.
+    await admin
+      .from("profiles")
+      .update({
+        must_change_password: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", user.id);
 
-      if (profileError) {
-        return {
-          ok: true,
-          message:
-            "Password changed successfully. The account flag could not be refreshed automatically, but the new password is active.",
-        };
-      }
-    } catch {
-      return {
-        ok: true,
-        message:
-          "Password changed successfully. The account flag could not be refreshed automatically, but the new password is active.",
-      };
-    }
-
-    revalidatePath("/account");
-    revalidatePath("/dashboard");
-    return { ok: true, message: "Password changed successfully. Use the new password the next time you sign in." };
+    // End the old browser session cleanly. The user then proves the new
+    // password immediately by signing in again.
+    await supabase.auth.signOut();
   } catch (error) {
     return {
       ok: false,
@@ -90,4 +100,8 @@ export async function changePasswordAction(
           : "The password could not be changed. Please try again.",
     };
   }
+
+  redirect(
+    "/login?message=Password+changed+successfully.+Please+sign+in+with+your+new+password.",
+  );
 }
