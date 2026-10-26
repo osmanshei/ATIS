@@ -655,7 +655,7 @@ for select to authenticated
 using (
   school_id=(select public.current_school_id())
   and mode='daily'
-  and (select public.current_app_role()) in ('accountant','clerk','staff')
+  and (select public.current_app_role()) in ('accountant','clerk')
 );
 
 drop policy if exists attendance_records_feeding_read on public.attendance_records;
@@ -663,7 +663,7 @@ create policy attendance_records_feeding_read on public.attendance_records
 for select to authenticated
 using (
   school_id=(select public.current_school_id())
-  and (select public.current_app_role()) in ('accountant','clerk','staff')
+  and (select public.current_app_role()) in ('accountant','clerk')
   and exists (
     select 1 from public.attendance_sessions s
     where s.id=session_id
