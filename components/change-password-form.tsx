@@ -1,24 +1,8 @@
-"use client";
-
-import { useActionState, useEffect, useRef } from "react";
-import {
-  changePasswordAction,
-  initialPasswordState,
-} from "@/app/(protected)/account/actions";
+import { changePasswordAction } from "@/app/(protected)/account/actions";
 
 export function ChangePasswordForm() {
-  const [state, action, pending] = useActionState(
-    changePasswordAction,
-    initialPasswordState,
-  );
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state.ok]);
-
   return (
-    <form ref={formRef} className="form-card" action={action}>
+    <form className="form-card" action={changePasswordAction}>
       <h2 className="section-title">Change password</h2>
       <p className="muted">
         Confirm your current password, then choose a new password for this account.
@@ -55,12 +39,9 @@ export function ChangePasswordForm() {
           required
         />
       </div>
-      <button className="button" type="submit" disabled={pending}>
-        {pending ? "Changing..." : "Change password"}
+      <button className="button" type="submit">
+        Change password
       </button>
-      {state.message ? (
-        <div className={state.ok ? "notice success" : "notice error"}>{state.message}</div>
-      ) : null}
     </form>
   );
 }
