@@ -93,6 +93,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "supervisor", "accountant"],
   },
   {
+    href: "/payroll/attendance",
+    label: "Staff Attendance",
+    short: "SA",
+    roles: ["admin", "supervisor", "clerk"],
+  },
+  {
     href: "/payroll",
     label: "Payroll & Payslips",
     short: "PR",
