@@ -549,7 +549,7 @@ begin
 
   return v_receipt;
 end;
-$;
+$$;
 
 create or replace function public.sync_feeding_after_attendance()
 returns trigger
@@ -576,7 +576,7 @@ begin
   if tg_op='DELETE' then return old; end if;
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists sync_feeding_on_attendance_change on public.attendance_records;
 create trigger sync_feeding_on_attendance_change
@@ -1008,7 +1008,7 @@ returns void
 language plpgsql
 security definer
 set search_path=public
-as $
+as $$
 begin
   if public.current_app_role() not in ('admin','supervisor') then raise exception 'Not authorized'; end if;
   if nullif(trim(p_key),'') is null then raise exception 'Setting key is required'; end if;
@@ -1022,14 +1022,14 @@ begin
     updated_by=auth.uid(),
     updated_at=now();
 end;
-$;
+$$;
 
 create or replace function public.save_payroll_allowance_type(p_payload jsonb)
 returns uuid
 language plpgsql
 security definer
 set search_path=public
-as $
+as $$
 declare v_school uuid; v_id uuid; v_type text; v_name text;
 begin
   if public.current_app_role() not in ('admin','supervisor') then raise exception 'Not authorized'; end if;
@@ -1058,7 +1058,7 @@ begin
   returning id into v_id;
   return v_id;
 end;
-$;
+$$;
 
 create or replace function public.save_payroll_category(p_payload jsonb)
 returns uuid
