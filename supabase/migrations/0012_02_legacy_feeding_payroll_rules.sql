@@ -606,6 +606,29 @@ group by st.school_id,p.term_id,t.id,st.id,c.id,p.id;
 
 grant select on public.feeding_student_balance to authenticated;
 
+drop policy if exists attendance_sessions_feeding_read on public.attendance_sessions;
+create policy attendance_sessions_feeding_read on public.attendance_sessions
+for select to authenticated
+using (
+  school_id=(select public.current_school_id())
+  and mode='daily'
+  and (select public.current_app_role()) in ('accountant','clerk','staff')
+);
+
+drop policy if exists attendance_records_feeding_read on public.attendance_records;
+create policy attendance_records_feeding_read on public.attendance_records
+for select to authenticated
+using (
+  school_id=(select public.current_school_id())
+  and (select public.current_app_role()) in ('accountant','clerk','staff')
+  and exists (
+    select 1 from public.attendance_sessions s
+    where s.id=session_id
+      and s.school_id=(select public.current_school_id())
+      and s.mode='daily'
+  )
+);
+
 create or replace view public.feeding_daily_register
 with (security_invoker=true)
 as
