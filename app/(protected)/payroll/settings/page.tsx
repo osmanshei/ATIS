@@ -33,7 +33,7 @@ export default async function PayrollSettingsPage({
     supabase.from("payroll_settings").select("*").order("key"),
     supabase.from("payroll_categories").select("*").order("category_name"),
     supabase.from("payroll_profile_summary").select("*").order("full_name"),
-    supabase.from("staff").select("id,full_name,employee_code,position_title").eq("status","active").order("full_name"),
+    supabase.from("payroll_staff_directory").select("id,full_name,employee_code,position_title").order("full_name"),
     supabase.from("payroll_allowance_types").select("*").order("name"),
     supabase.from("staff_allowances").select("id,staff_id,allowance_type_id,amount,active,effective_from,effective_to,notes").eq("active",true).order("created_at",{ascending:false}).limit(100),
     supabase.from("staff_loans").select("id,staff_id,loan_name,principal,monthly_deduction,amount_paid,balance,start_month,status").order("created_at",{ascending:false}).limit(100),
@@ -112,6 +112,36 @@ export default async function PayrollSettingsPage({
         <div className="section-heading">
           <div><div className="eyebrow">Staff setup</div><h2>Payroll profiles</h2></div>
         </div>
+        {canConfigure ? (
+          <form className="card payroll-category-form" action={savePayrollProfileAction}>
+            <div className="field">
+              <label>Add / update staff</label>
+              <select name="staff_id" required defaultValue="">
+                <option value="" disabled>Select staff</option>
+                {(staff || []).map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.full_name} · {s.employee_code || s.position_title || "Staff"}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Category</label>
+              <select name="category_id" required defaultValue="">
+                <option value="" disabled>Select category</option>
+                {(categories || []).map((cat: any) => (
+                  <option key={cat.id} value={cat.id}>{cat.category_name} · {money(cat.base_pay)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="field"><label>Base override</label><input name="base_pay_override" type="number" min="0" step="0.01" /></div>
+            <div className="field"><label>SSNIT override %</label><input name="ssnit_rate_override" type="number" min="0" max="100" step="0.001" /></div>
+            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked /> SSNIT</label>
+            <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked /> Early allowance</label>
+            <label className="compact-check"><input name="long_service_eligible" type="checkbox" defaultChecked /> Long service</label>
+            <input type="hidden" name="notes" value="" />
+            <button className="button" type="submit">Save Payroll Profile</button>
+          </form>
+        ) : null}
+
         <div className="payroll-profile-list">
           {(profiles || []).map((row: any) => (
             <form className="card payroll-profile-row" action={savePayrollProfileAction} key={row.id}>
