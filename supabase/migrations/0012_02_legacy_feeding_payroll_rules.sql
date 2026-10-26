@@ -913,6 +913,67 @@ left join public.payroll_categories pc
 where s.status='active'
 on conflict(staff_id) do nothing;
 
+create or replace function public.save_payroll_setting(
+  p_key text,
+  p_value numeric,
+  p_description text default null
+)
+returns void
+language plpgsql
+security definer
+set search_path=public
+as $
+begin
+  if public.current_app_role() not in ('admin','supervisor') then raise exception 'Not authorized'; end if;
+  if nullif(trim(p_key),'') is null then raise exception 'Setting key is required'; end if;
+  if p_value is null or p_value<0 then raise exception 'Setting value must be zero or greater'; end if;
+
+  insert into public.payroll_settings(school_id,key,value,description,updated_by)
+  values(public.current_school_id(),upper(trim(p_key)),p_value,nullif(trim(coalesce(p_description,'')),''),auth.uid())
+  on conflict(school_id,key) do update set
+    value=excluded.value,
+    description=coalesce(excluded.description,public.payroll_settings.description),
+    updated_by=auth.uid(),
+    updated_at=now();
+end;
+$;
+
+create or replace function public.save_payroll_allowance_type(p_payload jsonb)
+returns uuid
+language plpgsql
+security definer
+set search_path=public
+as $
+declare v_school uuid; v_id uuid; v_type text; v_name text;
+begin
+  if public.current_app_role() not in ('admin','supervisor') then raise exception 'Not authorized'; end if;
+  v_school:=public.current_school_id();
+  v_name:=nullif(trim(p_payload->>'name'),'');
+  v_type:=coalesce(nullif(trim(p_payload->>'calculation_type'),''),'fixed');
+  if v_name is null then raise exception 'Allowance name is required'; end if;
+  if v_type not in ('fixed','percentage_base','system_early','system_long_service') then
+    raise exception 'Invalid allowance calculation type';
+  end if;
+
+  insert into public.payroll_allowance_types(
+    school_id,name,calculation_type,default_amount,active,notes
+  ) values(
+    v_school,v_name,v_type,
+    greatest(coalesce(nullif(p_payload->>'default_amount','')::numeric,0),0),
+    coalesce((p_payload->>'active')::boolean,true),
+    nullif(trim(coalesce(p_payload->>'notes','')),'')
+  )
+  on conflict(school_id,name) do update set
+    calculation_type=excluded.calculation_type,
+    default_amount=excluded.default_amount,
+    active=excluded.active,
+    notes=excluded.notes,
+    updated_at=now()
+  returning id into v_id;
+  return v_id;
+end;
+$;
+
 create or replace function public.save_payroll_category(p_payload jsonb)
 returns uuid
 language plpgsql
@@ -1468,6 +1529,8 @@ revoke all on function public.save_feeding_rate(jsonb) from public;
 revoke all on function public.save_student_feeding_plan(jsonb) from public;
 revoke all on function public.record_feeding_payment(uuid,uuid,text,date,text,text,text,numeric) from public;
 revoke all on function public.resync_student_feeding(uuid,uuid) from public;
+revoke all on function public.save_payroll_setting(text,numeric,text) from public;
+revoke all on function public.save_payroll_allowance_type(jsonb) from public;
 revoke all on function public.save_payroll_category(jsonb) from public;
 revoke all on function public.save_payroll_profile(jsonb) from public;
 revoke all on function public.save_staff_allowance(jsonb) from public;
@@ -1478,6 +1541,8 @@ grant execute on function public.save_feeding_rate(jsonb) to authenticated;
 grant execute on function public.save_student_feeding_plan(jsonb) to authenticated;
 grant execute on function public.record_feeding_payment(uuid,uuid,text,date,text,text,text,numeric) to authenticated;
 grant execute on function public.resync_student_feeding(uuid,uuid) to authenticated;
+grant execute on function public.save_payroll_setting(text,numeric,text) to authenticated;
+grant execute on function public.save_payroll_allowance_type(jsonb) to authenticated;
 grant execute on function public.save_payroll_category(jsonb) to authenticated;
 grant execute on function public.save_payroll_profile(jsonb) to authenticated;
 grant execute on function public.save_staff_allowance(jsonb) to authenticated;
