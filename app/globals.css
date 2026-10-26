@@ -2424,3 +2424,331 @@ tbody tr:hover { background: #fbfdfb; }
   .timetable-lesson-cell span { font-size: 5.8pt; }
   .timetable-lesson-cell small { font-size: 5.2pt; }
 }
+
+
+/* ATIS v0.10 payroll, payment vouchers and feeding */
+.payroll-create-form,
+.payroll-pay-form,
+.voucher-pay-form {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+.payroll-create-form .field,
+.payroll-pay-form .field,
+.voucher-pay-form .field {
+  margin: 0;
+  min-width: 170px;
+}
+.payroll-item-list {
+  display: grid;
+  gap: 12px;
+}
+.payroll-item-form {
+  display: grid;
+  grid-template-columns: minmax(190px,1.5fr) 130px 130px 130px 150px;
+  gap: 10px;
+  align-items: end;
+}
+.payroll-item-form .field {
+  margin: 0;
+}
+.payroll-person strong,
+.payroll-person small,
+.payroll-net span,
+.payroll-net strong {
+  display: block;
+}
+.payroll-person small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.payroll-net {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7faf8;
+}
+.payroll-net span {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.payroll-net strong {
+  margin-top: 3px;
+  color: var(--green-950);
+  font-size: 16px;
+}
+.payroll-detail-field {
+  grid-column: span 2;
+}
+.voucher-create-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+  align-items: end;
+}
+.voucher-create-grid .field {
+  margin: 0;
+}
+.voucher-create-grid .span-2 {
+  grid-column: span 2;
+}
+.block-muted {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.print-document {
+  width: min(900px,100%);
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.document-header {
+  margin-bottom: 18px;
+  text-align: center;
+}
+.document-header h1 {
+  margin: 0;
+  color: var(--green-950);
+  font-size: 20px;
+}
+.document-header h2 {
+  margin: 14px 0 0;
+  font-size: 17px;
+  letter-spacing: .08em;
+}
+.document-header p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.document-meta-grid,
+.voucher-number-row {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.document-meta-grid > div,
+.voucher-number-row > div {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.document-meta-grid span,
+.document-meta-grid strong,
+.voucher-number-row span,
+.voucher-number-row strong {
+  display: block;
+}
+.document-meta-grid span,
+.voucher-number-row span {
+  color: var(--muted);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.document-meta-grid strong,
+.voucher-number-row strong {
+  margin-top: 4px;
+  font-size: 11px;
+}
+.document-table {
+  width: 100%;
+  margin: 14px 0;
+  border-collapse: collapse;
+}
+.document-table th,
+.document-table td {
+  padding: 9px 10px;
+  border: 1px solid #dce5df;
+  text-align: left;
+  font-size: 10px;
+}
+.document-table th {
+  background: #f1f6f3;
+}
+.document-table th:last-child,
+.document-table td:last-child {
+  text-align: right;
+}
+.voucher-table th {
+  width: 180px;
+}
+.voucher-table td:last-child {
+  text-align: left;
+}
+.payslip-net {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding: 16px 18px;
+  border: 2px solid var(--green-900);
+  border-radius: 10px;
+}
+.payslip-net span {
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.payslip-net strong {
+  color: var(--green-950);
+  font-size: 22px;
+}
+.document-note,
+.document-footer {
+  color: var(--muted);
+  font-size: 9px;
+}
+.document-footer {
+  margin-top: 22px;
+  text-align: center;
+}
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 24px;
+  margin-top: 46px;
+}
+.signature-grid span {
+  color: var(--muted);
+  font-size: 9px;
+}
+.signature-line {
+  margin-top: 30px;
+  border-bottom: 1px solid #444;
+}
+.feeding-class-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 12px;
+}
+.feeding-class-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.feeding-class-card h3 {
+  margin: 4px 0;
+  color: var(--green-950);
+}
+.feeding-class-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.feeding-card-stats strong,
+.feeding-card-stats small {
+  display: block;
+}
+.feeding-card-stats strong {
+  margin-top: 7px;
+  font-size: 18px;
+}
+.feeding-card-stats small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.feeding-meta-form {
+  display: grid;
+  grid-template-columns: 130px 160px minmax(180px,1fr) minmax(220px,1.4fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+.feeding-meta-form .field {
+  margin: 0;
+}
+.feeding-register-table select,
+.feeding-register-table input {
+  min-width: 120px;
+}
+.feeding-alert {
+  color: #8b3f17;
+  font-weight: 700;
+  font-size: 9px;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width:1100px) {
+  .payroll-item-form {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+  .voucher-create-grid,
+  .feeding-meta-form {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .feeding-class-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+@media (max-width:700px) {
+  .payroll-item-form,
+  .voucher-create-grid,
+  .feeding-meta-form,
+  .feeding-class-grid,
+  .document-meta-grid,
+  .voucher-number-row,
+  .signature-grid {
+    grid-template-columns: 1fr;
+  }
+  .payroll-detail-field,
+  .voucher-create-grid .span-2 {
+    grid-column: auto;
+  }
+  .payroll-create-form,
+  .payroll-pay-form,
+  .voucher-pay-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+@media print {
+  .no-print,
+  .sidebar,
+  .mobile-topbar {
+    display: none !important;
+  }
+  .main-shell,
+  .content-shell {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .print-document {
+    width: 100%;
+    max-width: none;
+    padding: 8mm;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .document-header h1 { font-size: 14pt; }
+  .document-header h2 { font-size: 12pt; }
+  .document-header p { font-size: 7pt; }
+  .document-meta-grid span,
+  .voucher-number-row span,
+  .signature-grid span { font-size: 6.5pt; }
+  .document-meta-grid strong,
+  .voucher-number-row strong,
+  .document-table th,
+  .document-table td { font-size: 8pt; }
+  .payslip-net strong { font-size: 15pt; }
+}
