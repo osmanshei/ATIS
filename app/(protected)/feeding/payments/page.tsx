@@ -64,6 +64,7 @@ export default async function FeedingPaymentsPage({
           .from("feeding_student_balance")
           .select("total_paid,total_charged,credit_balance")
           .eq("student_id", studentId)
+          .eq("term_id", termId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
