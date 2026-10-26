@@ -1,29 +1,10 @@
-import { redirect } from "next/navigation";
-import {
-  changePasswordAction,
-  initialPasswordState,
-} from "@/app/(protected)/account/actions";
-
 export function ChangePasswordForm() {
-  async function submitPasswordChange(formData: FormData) {
-    "use server";
-
-    const result = await changePasswordAction(initialPasswordState, formData);
-
-    if (!result.ok) {
-      redirect("/account?error=" + encodeURIComponent(result.message));
-    }
-
-    redirect(
-      "/login?message=" +
-        encodeURIComponent(
-          "Password changed successfully. Please sign in with your new password.",
-        ),
-    );
-  }
-
   return (
-    <form className="form-card" action={submitPasswordChange}>
+    <form
+      className="form-card"
+      action="/api/account/change-password"
+      method="post"
+    >
       <h2 className="section-title">Change password</h2>
       <p className="muted">
         Confirm your current password, then choose a new password for this account.
