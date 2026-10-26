@@ -51,6 +51,8 @@ export default async function PayslipPage({
         <div><span>Payroll Month</span><strong>{new Date(item.payroll_month + "T00:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</strong></div>
         <div><span>Payroll No.</span><strong>{item.run_no}</strong></div>
         <div><span>Payment Date</span><strong>{item.pay_date || "—"}</strong></div>
+        <div><span>Early Attendance</span><strong>{item.early_days || 0} / {item.total_attendance || 0} days</strong></div>
+        <div><span>Service</span><strong>{item.service_years || 0} completed year(s)</strong></div>
       </div>
 
       <table className="document-table">
@@ -58,7 +60,7 @@ export default async function PayslipPage({
         <tbody>
           <tr><td>Basic Salary</td><td>{money(item.base_salary)}</td></tr>
           {rows(item.allowance_details).map((row: any, index: number) => (
-            <tr key={"a" + index}><td>{row.label || "Allowance"}</td><td>{money(row.amount)}</td></tr>
+            <tr key={"a" + index}><td>{row.name || row.label || "Allowance"}{row.detail ? " · " + row.detail : ""}</td><td>{money(row.amount)}</td></tr>
           ))}
           <tr><td><strong>Total Allowances</strong></td><td><strong>{money(item.allowances)}</strong></td></tr>
           <tr><td><strong>Gross Pay</strong></td><td><strong>{money(item.gross_pay)}</strong></td></tr>
@@ -69,7 +71,7 @@ export default async function PayslipPage({
         <thead><tr><th>Deductions</th><th>Amount</th></tr></thead>
         <tbody>
           {rows(item.deduction_details).map((row: any, index: number) => (
-            <tr key={"d" + index}><td>{row.label || "Deduction"}</td><td>{money(row.amount)}</td></tr>
+            <tr key={"d" + index}><td>{row.name || row.label || "Deduction"}</td><td>{money(row.amount ?? row.deduction)}</td></tr>
           ))}
           {!rows(item.deduction_details).length ? <tr><td>No itemized deductions</td><td>{money(0)}</td></tr> : null}
           <tr><td><strong>Total Deductions</strong></td><td><strong>{money(item.deductions)}</strong></td></tr>
