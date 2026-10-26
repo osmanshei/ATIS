@@ -2752,3 +2752,132 @@ tbody tr:hover { background: #fbfdfb; }
   .document-table td { font-size: 8pt; }
   .payslip-net strong { font-size: 15pt; }
 }
+
+
+/* ATIS v0.10.1 legacy feeding/payroll workflows */
+.feeding-rate-grid {
+  display: grid;
+  gap: 10px;
+}
+.feeding-rate-card {
+  display: grid;
+  grid-template-columns: minmax(190px,1.4fr) repeat(4,120px) auto;
+  gap: 10px;
+  align-items: end;
+}
+.feeding-rate-card .field,
+.feeding-plan-form .field,
+.feeding-payment-form .field,
+.payroll-category-form .field,
+.payroll-loan-form .field,
+.payroll-attendance-row .field,
+.payroll-profile-row .field {
+  margin: 0;
+}
+.feeding-plan-form,
+.feeding-payment-form,
+.payroll-category-form,
+.payroll-loan-form {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+.feeding-search-results {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.feeding-student-result {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  text-decoration: none;
+}
+.feeding-student-result strong,
+.feeding-student-result small {
+  display: block;
+}
+.feeding-student-result small {
+  color: var(--muted);
+}
+.payroll-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+}
+.payroll-setting-card {
+  display: grid;
+  gap: 8px;
+}
+.payroll-setting-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.payroll-profile-list,
+.payroll-attendance-list {
+  display: grid;
+  gap: 10px;
+}
+.payroll-profile-row {
+  display: grid;
+  grid-template-columns: minmax(200px,1.5fr) minmax(160px,1fr) 140px 140px auto auto auto auto;
+  gap: 9px;
+  align-items: end;
+}
+.payroll-attendance-row {
+  display: grid;
+  grid-template-columns: minmax(220px,1.5fr) 140px 140px auto minmax(180px,1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.legacy-payroll-item {
+  grid-template-columns: minmax(200px,1.5fr) repeat(6,115px) 145px;
+}
+.payroll-auto-breakdown {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafcfb;
+}
+.payroll-auto-breakdown strong,
+.payroll-auto-breakdown small {
+  display: block;
+}
+.payroll-auto-breakdown small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 8.5px;
+  line-height: 1.35;
+}
+
+@media (max-width:1200px) {
+  .feeding-rate-card {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+  .payroll-profile-row,
+  .legacy-payroll-item {
+    grid-template-columns: repeat(4,minmax(0,1fr));
+  }
+  .payroll-settings-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+@media (max-width:800px) {
+  .feeding-rate-card,
+  .feeding-plan-form,
+  .feeding-payment-form,
+  .payroll-category-form,
+  .payroll-loan-form,
+  .payroll-profile-row,
+  .payroll-attendance-row,
+  .legacy-payroll-item,
+  .payroll-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
