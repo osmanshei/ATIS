@@ -1,10 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  createSingleStaffAction,
-  initialSingleStaffState,
-} from "@/app/(protected)/staff/onboarding/actions";
+import { createSingleStaffAction } from "@/app/(protected)/staff/onboarding/actions";
+import { initialSingleStaffState } from "@/lib/staff-onboarding-state";
 
 export function StaffSingleOnboarding() {
   const [state, action, pending] = useActionState(
