@@ -191,6 +191,17 @@ using(
   and public.current_app_role() in ('admin','supervisor','clerk')
 );
 
+drop policy if exists staff_attendance_read on public.staff_attendance;
+create policy staff_attendance_read on public.staff_attendance
+for select to authenticated
+using(
+  school_id=public.current_school_id()
+  and (
+    public.current_app_role() in ('admin','supervisor','accountant','clerk')
+    or staff_id=public.current_staff_id()
+  )
+);
+
 create or replace function public.save_staff_attendance_device_mapping(
   p_staff_id uuid,
   p_device_user_id text,
