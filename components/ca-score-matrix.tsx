@@ -94,10 +94,10 @@ export function CaScoreMatrix({
         total,
         complete,
         entered,
-        converted: complete && rawMaximum > 0 ? (total / caMaxMark) * caWeight : null,
+        converted: complete && caMaxMark > 0 ? (total / caMaxMark) * caWeight : null,
       };
     });
-  }, [students, assessments, cells, rawMaximum, caWeight]);
+  }, [students, assessments, cells, caMaxMark, caWeight]);
 
   const records = assessments.map((assessment) => ({
     assessment_id: assessment.id,
@@ -179,42 +179,39 @@ export function CaScoreMatrix({
                     {assessments.map((assessment) => {
                       const cell = cells[cellKey(assessment.id, student.id)] || { score: "", absent: false, remark: "" };
                       return (
-                        <td key={assessment.id} style={{ minWidth: 120 }}>
-                          <input
-                            aria-label={fullName + " " + assessment.assessment_name + " score"}
-                            type="number"
-                            min="0"
-                            max={assessment.max_mark}
-                            step="0.01"
-                            value={cell.score}
-                            disabled={locked || cell.absent}
-                            onChange={(event) => updateCell(assessment.id, student.id, { score: event.target.value })}
-                            style={{ width: 88 }}
-                          />
-                          <label style={{ display: "block", fontSize: 12 }}>
+                        <Fragment key={assessment.id}>
+                          <td style={{ minWidth: 120 }}>
                             <input
-                              type="checkbox"
-                              checked={cell.absent}
+                              aria-label={fullName + " " + assessment.assessment_name + " score"}
+                              type="number"
+                              min="0"
+                              max={assessment.max_mark}
+                              step="0.01"
+                              value={cell.score}
+                              disabled={locked || cell.absent}
+                              onChange={(event) => updateCell(assessment.id, student.id, { score: event.target.value })}
+                              style={{ width: 88 }}
+                            />
+                            <label style={{ display: "block", fontSize: 12 }}>
+                              <input
+                                type="checkbox"
+                                checked={cell.absent}
+                                disabled={locked}
+                                onChange={(event) => updateCell(assessment.id, student.id, { absent: event.target.checked, score: "" })}
+                              /> Absent
+                            </label>
+                          </td>
+                          <td style={{ minWidth: 140 }}>
+                            <input
+                              aria-label={fullName + " " + assessment.assessment_name + " remark"}
+                              value={cell.remark}
                               disabled={locked}
-                              onChange={(event) => updateCell(assessment.id, student.id, { absent: event.target.checked, score: "" })}
-                            /> Absent
-                          </label>
-                        </td>
-                      );
-                    })}
-                    {assessments.map((assessment) => {
-                      const cell = cells[cellKey(assessment.id, student.id)] || { score: "", absent: false, remark: "" };
-                      return (
-                        <td key={assessment.id + "-remark"} style={{ minWidth: 140 }}>
-                          <input
-                            aria-label={fullName + " " + assessment.assessment_name + " remark"}
-                            value={cell.remark}
-                            disabled={locked}
-                            placeholder="Optional"
-                            onChange={(event) => updateCell(assessment.id, student.id, { remark: event.target.value })}
-                            style={{ width: 120 }}
-                          />
-                        </td>
+                              placeholder="Optional"
+                              onChange={(event) => updateCell(assessment.id, student.id, { remark: event.target.value })}
+                              style={{ width: 120 }}
+                            />
+                          </td>
+                        </Fragment>
                       );
                     })}
                     <td>{row?.complete ? row.total.toFixed(2) : row?.entered + "/" + assessments.length}</td>
