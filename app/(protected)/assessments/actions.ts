@@ -179,7 +179,7 @@ export async function saveAllCaScoresAction(formData: FormData) {
     redirect("/assessments/" + setupId + "/ca-entry?error=" + encodeURIComponent(assessmentError.message));
   }
 
-  const byId = new Map((availableAssessments || []).map((assessment: any) => [assessment.id, assessment]));
+  const byId = new Map<string, any>((availableAssessments || []).map((assessment: any) => [String(assessment.id), assessment] as [string, any]));
   const submittedIds = new Set<string>();
 
   for (const item of groups as any[]) {
