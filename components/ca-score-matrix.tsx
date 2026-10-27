@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { saveAllCaScoresAction } from "@/app/(protected)/assessments/actions";
 
 type Student = {
@@ -161,10 +161,10 @@ export function CaScoreMatrix({
               </tr>
               <tr>
                 {assessments.map((assessment) => (
-                  <>
-                    <th key={assessment.id + "-score"}>Score / Absent</th>
-                    <th key={assessment.id + "-remark"}>Remark</th>
-                  </>
+                  <Fragment key={assessment.id}>
+                    <th>Score / Absent</th>
+                    <th>Remark</th>
+                  </Fragment>
                 ))}
               </tr>
             </thead>
