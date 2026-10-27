@@ -2881,3 +2881,93 @@ tbody tr:hover { background: #fbfdfb; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ATIS v0.10.2 teacher assignment + device attendance */
+.teacher-assignment-bundle {
+  display: grid;
+  grid-template-columns: minmax(220px,1fr) minmax(220px,1fr);
+  gap: 14px;
+}
+.teacher-assignment-bundle .field {
+  margin: 0;
+}
+.teacher-subject-picker {
+  grid-column: 1 / -1;
+}
+.teacher-subject-picker > label {
+  display: block;
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+.teacher-subject-options {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+}
+.subject-check-card,
+.class-teacher-toggle {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.subject-check-card input,
+.class-teacher-toggle input {
+  margin-top: 2px;
+}
+.subject-check-card span,
+.subject-check-card strong,
+.subject-check-card small,
+.class-teacher-toggle span,
+.class-teacher-toggle strong,
+.class-teacher-toggle small {
+  display: block;
+}
+.subject-check-card small,
+.class-teacher-toggle small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.class-teacher-toggle {
+  grid-column: 1 / -1;
+  max-width: 520px;
+}
+.device-import-form {
+  display: grid;
+  grid-template-columns: minmax(180px,.7fr) minmax(220px,1fr);
+  gap: 10px;
+  align-items: end;
+}
+.device-import-form .field,
+.device-mapping-form .field {
+  margin: 0;
+}
+.device-csv-paste {
+  grid-column: 1 / -1;
+}
+.device-mapping-form {
+  display: grid;
+  grid-template-columns: minmax(220px,1.4fr) minmax(160px,.8fr) minmax(180px,1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+@media (max-width:850px) {
+  .teacher-assignment-bundle,
+  .teacher-subject-options,
+  .device-import-form,
+  .device-mapping-form {
+    grid-template-columns: 1fr;
+  }
+  .teacher-subject-picker,
+  .class-teacher-toggle,
+  .device-csv-paste {
+    grid-column: auto;
+  }
+}
