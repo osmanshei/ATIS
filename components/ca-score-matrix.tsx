@@ -37,6 +37,7 @@ function cellKey(assessmentId: string, studentId: string) {
 export function CaScoreMatrix({
   setupId,
   caWeight,
+  caMaxMark,
   assessments,
   students,
   initialScores,
@@ -44,6 +45,7 @@ export function CaScoreMatrix({
 }: {
   setupId: string;
   caWeight: number;
+  caMaxMark: number;
   assessments: Assessment[];
   students: Student[];
   initialScores: Score[];
@@ -92,7 +94,7 @@ export function CaScoreMatrix({
         total,
         complete,
         entered,
-        converted: complete && rawMaximum > 0 ? (total / rawMaximum) * caWeight : null,
+        converted: complete && rawMaximum > 0 ? (total / caMaxMark) * caWeight : null,
       };
     });
   }, [students, assessments, cells, rawMaximum, caWeight]);
@@ -127,7 +129,7 @@ export function CaScoreMatrix({
         <div>
           <span className="metric-kicker">CA scorebook</span>
           <strong>{assessments.length} assessments · {students.length} students</strong>
-          <small>Raw maximum: {rawMaximum} · CA contribution: {caWeight} marks</small>
+          <small>Raw maximum: {rawMaximum} · Configured CA maximum: {caMaxMark} · CA contribution: {caWeight} marks</small>
         </div>
         {!locked ? <button className="button" type="submit" disabled={!assessments.length}>Save all CA scores</button> : null}
       </div>
@@ -159,10 +161,10 @@ export function CaScoreMatrix({
               </tr>
               <tr>
                 {assessments.map((assessment) => (
-                  <th key={assessment.id + "-score"}>Score / Absent</th>
-                ))}
-                {assessments.map((assessment) => (
-                  <th key={assessment.id + "-remark"}>Remark</th>
+                  <>
+                    <th key={assessment.id + "-score"}>Score / Absent</th>
+                    <th key={assessment.id + "-remark"}>Remark</th>
+                  </>
                 ))}
               </tr>
             </thead>
