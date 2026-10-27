@@ -305,23 +305,218 @@ export async function createStaffLoanAction(formData: FormData) {
   redirect("/payroll/settings?ok=" + encodeURIComponent("Staff loan created."));
 }
 
-export async function saveStaffAttendanceAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
-  const date = value(formData, "attendance_date");
 
-  const { error } = await supabase.rpc("save_staff_attendance", {
+function parseCsv(input: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+
+  for (let i = 0; i < input.length; i += 1) {
+    const ch = input[i];
+    if (quoted) {
+      if (ch === '"' && input[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        field += ch;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      row.push(field.trim());
+      field = "";
+    } else if (ch === "\n") {
+      row.push(field.trim());
+      rows.push(row);
+      row = [];
+      field = "";
+    } else if (ch !== "\r") {
+      field += ch;
+    }
+  }
+
+  row.push(field.trim());
+  if (row.some((cell) => cell !== "")) rows.push(row);
+  return rows.filter((cells) => cells.some((cell) => cell !== ""));
+}
+
+function headerKey(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeDate(value: string) {
+  const text = value.trim();
+  if (!text) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const match = text.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/);
+  if (match) {
+    const day = match[1].padStart(2, "0");
+    const month = match[2].padStart(2, "0");
+    return match[3] + "-" + month + "-" + day;
+  }
+
+  return text;
+}
+
+function normalizeTime(value: string) {
+  const text = value.trim();
+  if (!text) return "";
+  const ampm = text.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  if (ampm) {
+    let hour = Number(ampm[1]);
+    const minute = ampm[2];
+    const second = ampm[3] || "00";
+    const meridiem = ampm[4].toUpperCase();
+    if (meridiem === "PM" && hour < 12) hour += 12;
+    if (meridiem === "AM" && hour === 12) hour = 0;
+    return String(hour).padStart(2, "0") + ":" + minute + ":" + second;
+  }
+  if (/^\d{1,2}:\d{2}$/.test(text)) {
+    const [h, m] = text.split(":");
+    return h.padStart(2, "0") + ":" + m + ":00";
+  }
+  return text;
+}
+
+function normalizeBoolean(value: string) {
+  const text = value.trim().toLowerCase();
+  return ["1", "true", "yes", "y", "early"].includes(text);
+}
+
+function findCell(record: Record<string, string>, aliases: string[]) {
+  for (const alias of aliases) {
+    const value = record[alias];
+    if (value !== undefined && String(value).trim() !== "") return String(value).trim();
+  }
+  return "";
+}
+
+export async function saveStaffDeviceMappingAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+
+  const { error } = await supabase.rpc("save_staff_attendance_device_mapping", {
     p_staff_id: value(formData, "staff_id"),
-    p_attendance_date: date,
-    p_check_in_time: value(formData, "check_in_time") || null,
-    p_status: value(formData, "status") || "present",
-    p_early: formData.get("early") === "on",
-    p_notes: value(formData, "notes") || null,
+    p_device_user_id: value(formData, "device_user_id"),
+    p_device_name: value(formData, "device_name") || null,
   });
 
-  const back = "/payroll/attendance?date=" + encodeURIComponent(date);
-  if (error) redirect(back + "&error=" + encodeURIComponent(error.message));
+  if (error) {
+    redirect("/payroll/attendance?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/payroll/attendance");
+  redirect("/payroll/attendance?ok=" + encodeURIComponent("Device ID mapping saved."));
+}
+
+export async function importStaffDeviceAttendanceAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
+
+  let csv = value(formData, "csv_text");
+  const file = formData.get("attendance_file");
+
+  if (!csv && file && typeof file === "object" && "text" in file) {
+    csv = await (file as File).text();
+  }
+
+  if (!csv.trim()) {
+    redirect(
+      "/payroll/attendance?error=" +
+        encodeURIComponent("Choose a CSV export from the attendance device or paste CSV data."),
+    );
+  }
+
+  const parsed = parseCsv(csv);
+  if (parsed.length < 2) {
+    redirect(
+      "/payroll/attendance?error=" +
+        encodeURIComponent("The attendance CSV has no data rows."),
+    );
+  }
+
+  if (parsed.length > 5001) {
+    redirect(
+      "/payroll/attendance?error=" +
+        encodeURIComponent("Import a maximum of 5,000 attendance rows at a time."),
+    );
+  }
+
+  const headers = parsed[0].map(headerKey);
+  const rows = parsed.slice(1).map((cells) => {
+    const record: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      record[header] = cells[index] || "";
+    });
+
+    const identifier = findCell(record, [
+      "deviceuserid",
+      "userid",
+      "employeeid",
+      "employeecode",
+      "staffcode",
+      "pin",
+      "id",
+    ]);
+    const date = findCell(record, ["attendancedate", "date", "punchdate", "logdate"]);
+    const checkIn = findCell(record, [
+      "checkintime",
+      "checkin",
+      "timein",
+      "intime",
+      "punchtime",
+      "time",
+    ]);
+    const checkOut = findCell(record, ["checkouttime", "checkout", "timeout", "outtime"]);
+    const early = findCell(record, ["early", "isearly", "earlyattendance"]);
+    const status = findCell(record, ["status", "attendancestatus"]) || "present";
+    const recordId = findCell(record, ["devicerecordid", "recordid", "logid", "transactionid"]);
+
+    return {
+      device_user_id: identifier,
+      attendance_date: normalizeDate(date),
+      check_in_time: normalizeTime(checkIn),
+      check_out_time: normalizeTime(checkOut),
+      early: normalizeBoolean(early),
+      status: status.toLowerCase(),
+      device_record_id: recordId,
+    };
+  });
+
+  const source = value(formData, "device_name") || "verification_device";
+  const { data, error } = await supabase.rpc("import_staff_device_attendance", {
+    p_rows: rows,
+    p_source: source,
+  });
+
+  if (error) {
+    redirect("/payroll/attendance?error=" + encodeURIComponent(error.message));
+  }
+
+  const result = (data || {}) as {
+    imported?: number;
+    unmatched?: number;
+    skipped?: number;
+  };
 
   revalidatePath("/payroll/attendance");
   revalidatePath("/payroll");
-  redirect(back + "&ok=" + encodeURIComponent("Staff attendance saved."));
+
+  redirect(
+    "/payroll/attendance?ok=" +
+      encodeURIComponent(
+        "Device attendance imported: " +
+          Number(result.imported || 0) +
+          " saved, " +
+          Number(result.unmatched || 0) +
+          " unmatched, " +
+          Number(result.skipped || 0) +
+          " skipped.",
+      ),
+  );
 }
