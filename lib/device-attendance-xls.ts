@@ -239,7 +239,7 @@ function parseSummaryLikeSheet(
       if (!attendanceDate) continue;
 
       imported.push({
-        device_user_id: rawIdentifier,
+        device_user_id: rawIdentifier || staffName,
         staff_name: staffName,
         attendance_date: attendanceDate,
         check_in_time: checkIn,
@@ -310,7 +310,7 @@ function parseTimeMatrixWithoutHeader(
       if (!attendanceDate) return;
 
       imported.push({
-        device_user_id: "",
+        device_user_id: staffName,
         staff_name: staffName,
         attendance_date: attendanceDate,
         check_in_time: item.time,
