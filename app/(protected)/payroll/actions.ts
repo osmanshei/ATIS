@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
+import { parseLegacyAttendanceXls } from "@/lib/device-attendance-xls";
 
 function value(formData: FormData, key: string) {
   return String(formData.get(key) || "").trim();
@@ -418,77 +419,175 @@ export async function saveStaffDeviceMappingAction(formData: FormData) {
 export async function importStaffDeviceAttendanceAction(formData: FormData) {
   const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
 
-  let csv = value(formData, "csv_text");
-  const file = formData.get("attendance_file");
+  const fileValue = formData.get("attendance_file");
+  const pastedCsv = value(formData, "csv_text");
+  let rows: Array<Record<string, unknown>> = [];
 
-  if (!csv && file && typeof file === "object" && "text" in file) {
-    csv = await (file as File).text();
+  try {
+    if (fileValue instanceof File && fileValue.size > 0) {
+      if (fileValue.size > 5 * 1024 * 1024) {
+        redirect(
+          "/payroll/attendance?error=" +
+            encodeURIComponent("Attendance files must be 5 MB or smaller."),
+        );
+      }
+
+      const lowerName = fileValue.name.toLowerCase();
+
+      if (lowerName.endsWith(".xls")) {
+        const bytes = new Uint8Array(await fileValue.arrayBuffer());
+        rows = parseLegacyAttendanceXls(bytes);
+      } else if (lowerName.endsWith(".csv")) {
+        const parsed = parseCsv(await fileValue.text());
+        if (parsed.length >= 2) {
+          const headers = parsed[0].map(headerKey);
+          rows = parsed.slice(1).map((cells) => {
+            const record: Record<string, string> = {};
+            headers.forEach((header, index) => {
+              record[header] = cells[index] || "";
+            });
+
+            return {
+              device_user_id: findCell(record, [
+                "deviceuserid",
+                "userid",
+                "employeeid",
+                "employeecode",
+                "staffcode",
+                "pin",
+                "id",
+              ]),
+              staff_name: findCell(record, [
+                "staffname",
+                "employeename",
+                "fullname",
+                "name",
+              ]),
+              attendance_date: normalizeDate(
+                findCell(record, ["attendancedate", "date", "punchdate", "logdate"]),
+              ),
+              check_in_time: normalizeTime(
+                findCell(record, [
+                  "checkintime",
+                  "checkin",
+                  "timein",
+                  "intime",
+                  "punchtime",
+                  "time",
+                ]),
+              ),
+              check_out_time: normalizeTime(
+                findCell(record, ["checkouttime", "checkout", "timeout", "outtime"]),
+              ),
+              status:
+                findCell(record, ["status", "attendancestatus"]).toLowerCase() ||
+                "present",
+              device_record_id: findCell(record, [
+                "devicerecordid",
+                "recordid",
+                "logid",
+                "transactionid",
+              ]),
+            };
+          });
+        }
+      } else {
+        redirect(
+          "/payroll/attendance?error=" +
+            encodeURIComponent("Use the device's .XLS attendance report or a CSV export."),
+        );
+      }
+    } else if (pastedCsv.trim()) {
+      const parsed = parseCsv(pastedCsv);
+      if (parsed.length >= 2) {
+        const headers = parsed[0].map(headerKey);
+        rows = parsed.slice(1).map((cells) => {
+          const record: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            record[header] = cells[index] || "";
+          });
+
+          return {
+            device_user_id: findCell(record, [
+              "deviceuserid",
+              "userid",
+              "employeeid",
+              "employeecode",
+              "staffcode",
+              "pin",
+              "id",
+            ]),
+            staff_name: findCell(record, [
+              "staffname",
+              "employeename",
+              "fullname",
+              "name",
+            ]),
+            attendance_date: normalizeDate(
+              findCell(record, ["attendancedate", "date", "punchdate", "logdate"]),
+            ),
+            check_in_time: normalizeTime(
+              findCell(record, [
+                "checkintime",
+                "checkin",
+                "timein",
+                "intime",
+                "punchtime",
+                "time",
+              ]),
+            ),
+            check_out_time: normalizeTime(
+              findCell(record, ["checkouttime", "checkout", "timeout", "outtime"]),
+            ),
+            status:
+              findCell(record, ["status", "attendancestatus"]).toLowerCase() ||
+              "present",
+            device_record_id: findCell(record, [
+              "devicerecordid",
+              "recordid",
+              "logid",
+              "transactionid",
+            ]),
+          };
+        });
+      }
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "The attendance file could not be read.";
+
+    redirect("/payroll/attendance?error=" + encodeURIComponent(message));
   }
 
-  if (!csv.trim()) {
+  rows = rows.filter(
+    (row) =>
+      Boolean(String(row.attendance_date || "").trim()) &&
+      Boolean(
+        String(row.device_user_id || "").trim() ||
+          String(row.staff_name || "").trim(),
+      ),
+  );
+
+  if (!rows.length) {
     redirect(
       "/payroll/attendance?error=" +
-        encodeURIComponent("Choose a CSV export from the attendance device or paste CSV data."),
+        encodeURIComponent(
+          "No staff attendance records were found in the device export.",
+        ),
     );
   }
 
-  const parsed = parseCsv(csv);
-  if (parsed.length < 2) {
-    redirect(
-      "/payroll/attendance?error=" +
-        encodeURIComponent("The attendance CSV has no data rows."),
-    );
-  }
-
-  if (parsed.length > 5001) {
+  if (rows.length > 5000) {
     redirect(
       "/payroll/attendance?error=" +
         encodeURIComponent("Import a maximum of 5,000 attendance rows at a time."),
     );
   }
 
-  const headers = parsed[0].map(headerKey);
-  const rows = parsed.slice(1).map((cells) => {
-    const record: Record<string, string> = {};
-    headers.forEach((header, index) => {
-      record[header] = cells[index] || "";
-    });
-
-    const identifier = findCell(record, [
-      "deviceuserid",
-      "userid",
-      "employeeid",
-      "employeecode",
-      "staffcode",
-      "pin",
-      "id",
-    ]);
-    const date = findCell(record, ["attendancedate", "date", "punchdate", "logdate"]);
-    const checkIn = findCell(record, [
-      "checkintime",
-      "checkin",
-      "timein",
-      "intime",
-      "punchtime",
-      "time",
-    ]);
-    const checkOut = findCell(record, ["checkouttime", "checkout", "timeout", "outtime"]);
-    const early = findCell(record, ["early", "isearly", "earlyattendance"]);
-    const status = findCell(record, ["status", "attendancestatus"]) || "present";
-    const recordId = findCell(record, ["devicerecordid", "recordid", "logid", "transactionid"]);
-
-    return {
-      device_user_id: identifier,
-      attendance_date: normalizeDate(date),
-      check_in_time: normalizeTime(checkIn),
-      check_out_time: normalizeTime(checkOut),
-      early: normalizeBoolean(early),
-      status: status.toLowerCase(),
-      device_record_id: recordId,
-    };
-  });
-
   const source = value(formData, "device_name") || "verification_device";
+
   const { data, error } = await supabase.rpc("import_staff_device_attendance", {
     p_rows: rows,
     p_source: source,
@@ -502,6 +601,7 @@ export async function importStaffDeviceAttendanceAction(formData: FormData) {
     imported?: number;
     unmatched?: number;
     skipped?: number;
+    early_cutoff?: string;
   };
 
   revalidatePath("/payroll/attendance");
@@ -516,7 +616,8 @@ export async function importStaffDeviceAttendanceAction(formData: FormData) {
           Number(result.unmatched || 0) +
           " unmatched, " +
           Number(result.skipped || 0) +
-          " skipped.",
+          " skipped. Early attendance is calculated at 7:30 AM or earlier.",
       ),
   );
 }
+
