@@ -1,6 +1,6 @@
 {
   "name": "atis-web",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
@@ -17,7 +17,8 @@
     "@supabase/supabase-js": "^2.118.0",
     "next": "^16.4.0",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "xls-reader": "^0.7.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
