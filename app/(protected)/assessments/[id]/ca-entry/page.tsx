@@ -73,6 +73,7 @@ export default async function CaScorebookPage({
       <CaScoreMatrix
         setupId={id}
         caWeight={Number(setup.ca_weight || 40)}
+        caMaxMark={Number(setup.ca_max_mark || 130)}
         assessments={assessmentRows}
         students={(students || []) as any}
         initialScores={(scores || []) as any}
