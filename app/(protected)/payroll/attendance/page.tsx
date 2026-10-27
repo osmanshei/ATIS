@@ -54,8 +54,8 @@ export default async function StaffPayrollAttendancePage({
           <div className="eyebrow">Verification-device attendance</div>
           <h1>Staff Attendance Import</h1>
           <p>
-            Staff attendance and early-attendance records used by Payroll should come from the
-            attendance verification device, not manual web entry.
+            Staff attendance and early-attendance records used by Payroll come from the
+            attendance verification device. ATIS counts a first registration at 7:30 AM or earlier as Early.
           </p>
         </div>
         <Link className="button secondary" href="/payroll">Back to Payroll</Link>
@@ -67,8 +67,8 @@ export default async function StaffPayrollAttendancePage({
       <section className="card device-import-card">
         <h2 className="section-title">Import attendance device export</h2>
         <p className="muted">
-          Export the attendance data as CSV. ATIS recognises common headings such as Employee Code,
-          User ID / Device User ID, Date, Check In, Check Out, Status and Early.
+          Upload the device's original .XLS Attendance Report directly. CSV exports are also supported.
+          For the .XLS report, ATIS reads each staff member's daily first clock-in and calculates Early automatically at 7:30 AM or earlier.
         </p>
         <form action={importStaffDeviceAttendanceAction} className="device-import-form">
           <div className="field">
@@ -76,15 +76,19 @@ export default async function StaffPayrollAttendancePage({
             <input name="device_name" defaultValue="Attendance Verification Device" />
           </div>
           <div className="field">
-            <label>CSV file</label>
-            <input name="attendance_file" type="file" accept=".csv,text/csv" />
+            <label>Device attendance file</label>
+            <input
+              name="attendance_file"
+              type="file"
+              accept=".xls,.csv,application/vnd.ms-excel,text/csv"
+            />
           </div>
           <div className="field device-csv-paste">
             <label>Or paste CSV data</label>
             <textarea
               name="csv_text"
               rows={5}
-              placeholder={"employee_code,attendance_date,check_in_time,check_out_time,status,early\nATIS001,2026-10-27,06:55,16:10,present,true"}
+              placeholder={"employee_code,staff_name,attendance_date,check_in_time,check_out_time,status\nATIS001,Teacher Name,2026-10-27,06:55,16:10,present"}
             />
           </div>
           <button className="button" type="submit">Import Device Attendance</button>
@@ -175,7 +179,13 @@ export default async function StaffPayrollAttendancePage({
                     <td>{row.check_in_time || "—"}</td>
                     <td>{row.check_out_time || "—"}</td>
                     <td><span className="tag">{row.status}</span></td>
-                    <td>{row.early ? <span className="tag">Yes</span> : "No"}</td>
+                    <td>
+                      {row.early ? (
+                        <span className="tag">Yes · ≤ 7:30</span>
+                      ) : (
+                        <span className="muted">No</span>
+                      )}
+                    </td>
                     <td>{monthSummary?.early_days || 0} / {monthSummary?.total_attendance || 0}</td>
                     <td>{row.source || "verification_device"}</td>
                   </tr>
