@@ -1,10 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import {
-  bulkOnboardStaffAction,
-  initialStaffBulkState,
-} from "@/app/(protected)/staff/onboarding/actions";
+import { bulkOnboardStaffAction } from "@/app/(protected)/staff/onboarding/actions";
+import { initialStaffBulkState } from "@/lib/staff-onboarding-state";
 
 function csvCell(value: unknown) {
   const text = String(value ?? "");
