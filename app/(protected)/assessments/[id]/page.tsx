@@ -49,6 +49,7 @@ export default async function AssessmentWorkspacePage({
         </div>
         <div className="action-row">
           <Link className="button secondary" href="/assessments">Back</Link>
+          <Link className="button" href={"/assessments/" + id + "/ca-entry"}>CA Scorebook</Link>
           <Link className="button" href={"/assessments/" + id + "/exam"}>Exam Scores</Link>
         </div>
       </div>
