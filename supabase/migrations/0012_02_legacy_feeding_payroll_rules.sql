@@ -1625,7 +1625,21 @@ create or replace view public.payroll_item_summary
 with (security_invoker=false)
 as
 select
-  pi.*,
+  -- Preserve every pre-existing view column in its original position.
+  -- PostgreSQL CREATE OR REPLACE VIEW only permits new columns to be appended.
+  pi.id,
+  pi.school_id,
+  pi.payroll_run_id,
+  pi.staff_id,
+  pi.contract_id,
+  pi.base_salary,
+  pi.allowances,
+  pi.deductions,
+  pi.allowance_details,
+  pi.deduction_details,
+  pi.remarks,
+  pi.created_at,
+  pi.updated_at,
   pr.run_no,
   pr.payroll_month,
   pr.title payroll_title,
@@ -1638,7 +1652,17 @@ select
   s.mobile,
   c.contract_no,
   (pi.base_salary+pi.allowances)::numeric(12,2) gross_pay,
-  (pi.base_salary+pi.allowances-pi.deductions)::numeric(12,2) net_pay
+  (pi.base_salary+pi.allowances-pi.deductions)::numeric(12,2) net_pay,
+  -- v0.10.1 payroll fields are appended after the legacy view columns.
+  pi.automatic_allowances,
+  pi.other_allowances,
+  pi.ssnit_deduction,
+  pi.loan_deduction,
+  pi.other_deductions,
+  pi.loan_details,
+  pi.early_days,
+  pi.total_attendance,
+  pi.service_years
 from public.payroll_items pi
 join public.payroll_runs pr on pr.id=pi.payroll_run_id
 join public.staff s on s.id=pi.staff_id
