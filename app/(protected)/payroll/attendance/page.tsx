@@ -56,6 +56,7 @@ export default async function StaffPayrollAttendancePage({
           <p>
             Staff attendance and early-attendance records used by Payroll come from the
             attendance verification device. ATIS counts a first registration at 7:30 AM or earlier as Early.
+            If the report uses abbreviated staff names, map the report name to the correct ATIS staff member once.
           </p>
         </div>
         <Link className="button secondary" href="/payroll">Back to Payroll</Link>
@@ -116,8 +117,12 @@ export default async function StaffPayrollAttendancePage({
             </select>
           </div>
           <div className="field">
-            <label>Device User ID / PIN</label>
-            <input name="device_user_id" required placeholder="ID used on the attendance device" />
+            <label>Device ID / Report Name</label>
+            <input
+              name="device_user_id"
+              required
+              placeholder="Device PIN, ID, or name exactly as shown in the report"
+            />
           </div>
           <div className="field">
             <label>Device name</label>
