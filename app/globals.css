@@ -1183,6 +1183,9 @@ tbody tr:hover { background: #fbfdfb; }
   border-radius: 14px;
   background: #fff;
 }
+.score-row.exam-score-row {
+  grid-template-columns: minmax(220px,1.25fr) minmax(105px,.65fr) minmax(105px,.65fr) 85px minmax(150px,.8fr);
+}
 .score-student {
   display: flex;
   align-items: center;
@@ -1391,6 +1394,7 @@ tbody tr:hover { background: #fbfdfb; }
 @media (max-width: 900px) {
   .assessment-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .score-row { grid-template-columns: 1fr 130px 90px; }
+  .score-row.exam-score-row { grid-template-columns: minmax(190px,1fr) 115px 115px 80px; }
   .score-remark { grid-column: 1 / -1; }
 }
 @media (max-width: 700px) {

@@ -40,8 +40,8 @@ export function StaffBulkOnboarding() {
       <form className="form-card" action={action}>
         <h2 className="section-title">Staff / Teacher CSV Import</h2>
         <p className="muted">
-          Required: Full Name, Phone Number and Email. Role and every other field are optional.
-          Leave Role blank to default to Teacher.
+          Required: Full Name and Phone Number. Email is optional. Role and every other field
+          are optional. Leave Role blank to default to Teacher.
         </p>
         <div className="field">
           <label>CSV file</label>
@@ -78,7 +78,7 @@ export function StaffBulkOnboarding() {
               <tbody>
                 {state.credentials.map((row) => (
                   <tr key={row.employeeCode}>
-                    <td><strong>{row.fullName}</strong><br /><span className="muted">{row.email}</span></td>
+                    <td><strong>{row.fullName}</strong><br /><span className="muted">{row.email || "No email recorded"}</span></td>
                     <td>{row.employeeCode}</td>
                     <td>{row.role}<br /><span className="muted">{row.position}</span></td>
                     <td><strong>{row.username}</strong></td>

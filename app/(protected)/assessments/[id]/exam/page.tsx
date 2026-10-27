@@ -32,11 +32,11 @@ export default async function ExamScoreEntryPage({
       .order("last_name"),
     supabase
       .from("exam_scores")
-      .select("student_id,raw_score,max_mark,is_absent,remark")
+      .select("student_id,raw_score,oral_score,max_mark,is_absent,remark")
       .eq("setup_id", id),
   ]);
 
-  const maxMark = Number(scores?.[0]?.max_mark || 100);
+  const maxMark = 100;
 
   return (
     <>
@@ -44,7 +44,7 @@ export default async function ExamScoreEntryPage({
         <div>
           <div className="eyebrow">{setup.class_name}{setup.section ? " / " + setup.section : ""} · {setup.term_name}</div>
           <h1>{setup.subject_name} — Exam Scores</h1>
-          <p>Exam contributes {setup.exam_weight}% to the final subject total.</p>
+          <p>Enter the written paper out of 100 and oral assessment out of 20. Exam total = written × 80% + oral; the result is scaled to {setup.exam_weight}%.</p>
         </div>
         <Link className="button secondary" href={"/assessments/" + id}>Back to subject</Link>
       </div>

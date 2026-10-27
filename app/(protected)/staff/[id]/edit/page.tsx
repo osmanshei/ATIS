@@ -62,7 +62,7 @@ export default async function EditStaffPage({
         <div className="form-grid">
           <div className="field"><label>Employee code</label><input name="employee_code" defaultValue={staff.employee_code || ""} /></div>
           <div className="field"><label>Full name</label><input name="full_name" defaultValue={staff.full_name || ""} required /></div>
-          <div className="field"><label>Email</label><input name="email" type="email" defaultValue={staff.email || ""} required /></div>
+          <div className="field"><label>Email (optional)</label><input name="email" type="email" defaultValue={staff.email || ""} /></div>
           <div className="field"><label>Phone</label><input name="mobile" defaultValue={staff.mobile || ""} required /></div>
           <div className="field">
             <label>System role</label>

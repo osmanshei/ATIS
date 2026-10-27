@@ -101,8 +101,7 @@ export async function bulkOnboardStaffAction(
     if (
       !fullName ||
       !normalizedPhone ||
-      !email ||
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+      (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ||
       !mapped
     ) {
       invalid += 1;
@@ -113,10 +112,9 @@ export async function bulkOnboardStaffAction(
     const codeKey = suppliedCode.toLowerCase();
 
     if (
-      emailSet.has(email) ||
+      (email && (emailSet.has(email) || seenEmail.has(email))) ||
       phoneSet.has(normalizedPhone) ||
       (suppliedCode && codeSet.has(codeKey)) ||
-      seenEmail.has(email) ||
       seenPhone.has(normalizedPhone) ||
       (suppliedCode && seenCode.has(codeKey))
     ) {
@@ -153,7 +151,7 @@ export async function bulkOnboardStaffAction(
         school_id: profile.school_id,
         employee_code: employeeCode,
         full_name: fullName,
-        email,
+        email: email || null,
         mobile: normalizedPhone,
         role: mapped.role,
         position_title: position,
@@ -201,10 +199,12 @@ export async function bulkOnboardStaffAction(
         emailSent: login.emailSent,
       });
 
-      emailSet.add(email);
+      if (email) {
+        emailSet.add(email);
+        seenEmail.add(email);
+      }
       phoneSet.add(normalizedPhone);
       codeSet.add(employeeCode.toLowerCase());
-      seenEmail.add(email);
       seenPhone.add(normalizedPhone);
       seenCode.add(employeeCode.toLowerCase());
     } catch {
@@ -260,14 +260,14 @@ export async function createSingleStaffAction(
   const email = clean(String(formData.get("email") || "")).toLowerCase();
   const normalizedPhone = normalizeGhanaPhone(phoneRaw);
 
-  if (!fullName || !normalizedPhone || !email) {
+  if (!fullName || !normalizedPhone) {
     return {
       ok: false,
-      message: "Full name, phone number and email are required.",
+      message: "Full name and phone number are required.",
     };
   }
 
-  if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, message: "Enter a valid email address." };
   }
 
@@ -277,24 +277,38 @@ export async function createSingleStaffAction(
     return { ok: false, message: "Choose a valid staff role." };
   }
 
-  const { data: duplicate } = await admin
+  const { data: phoneRows } = await admin
     .from("staff")
-    .select("id,email,mobile,employee_code")
-    .eq("school_id", profile.school_id)
-    .or(
-      "email.eq." +
-        email +
-        ",mobile.eq." +
-        normalizedPhone,
-    )
-    .limit(1)
-    .maybeSingle();
+    .select("id,mobile")
+    .eq("school_id", profile.school_id);
 
-  if (duplicate) {
+  const duplicatePhone = (phoneRows || []).some(
+    (row: { id: string; mobile: string | null }) =>
+      normalizeGhanaPhone(row.mobile || "") === normalizedPhone,
+  );
+
+  if (duplicatePhone) {
     return {
       ok: false,
-      message: "A staff record with this email or phone number already exists.",
+      message: "A staff record with this phone number already exists.",
     };
+  }
+
+  if (email) {
+    const { data: duplicateEmail } = await admin
+      .from("staff")
+      .select("id")
+      .eq("school_id", profile.school_id)
+      .eq("email", email)
+      .limit(1)
+      .maybeSingle();
+
+    if (duplicateEmail) {
+      return {
+        ok: false,
+        message: "A staff record with this email address already exists.",
+      };
+    }
   }
 
   let employeeCode = clean(String(formData.get("employee_code") || ""));
@@ -338,7 +352,7 @@ export async function createSingleStaffAction(
       school_id: profile.school_id,
       employee_code: employeeCode,
       full_name: fullName,
-      email,
+      email: email || null,
       mobile: normalizedPhone,
       role: requestedRole,
       position_title: position,

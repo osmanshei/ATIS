@@ -15,8 +15,9 @@ export function StaffSingleOnboarding() {
       <form className="form-card" action={action}>
         <h2 className="section-title">Staff details</h2>
         <p className="muted">
-          Full name, phone number and email are required. ATIS generates the employee
-          code, username and temporary password when needed.
+          Full name and phone number are required. Email is optional. ATIS generates the
+          employee code, username and temporary password; staff without email can sign in
+          using their username and the temporary password.
         </p>
 
         <div className="form-grid">
@@ -29,8 +30,9 @@ export function StaffSingleOnboarding() {
             <input name="mobile" required />
           </div>
           <div className="field">
-            <label>Email *</label>
-            <input name="email" type="email" required />
+            <label>Email (optional)</label>
+            <input name="email" type="email" />
+            <small className="muted">Leave blank if the staff member has no email address.</small>
           </div>
           <div className="field">
             <label>Employee code</label>

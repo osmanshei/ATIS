@@ -33,6 +33,7 @@ export async function saveAssessmentSetupAction(formData: FormData) {
     class_subject_id: value(formData, "class_subject_id"),
     ca_weight: value(formData, "ca_weight") || "40",
     exam_weight: value(formData, "exam_weight") || "60",
+    ca_max_mark: value(formData, "ca_max_mark") || "130",
     grade_scheme_id: value(formData, "grade_scheme_id"),
     status: value(formData, "status") || "active",
   };
@@ -42,6 +43,29 @@ export async function saveAssessmentSetupAction(formData: FormData) {
 
   revalidatePath("/assessments");
   redirect("/assessments?ok=Assessment+setup+saved.");
+}
+
+
+export async function initializeStandardCaAssessmentsAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "teacher"]);
+  const setupId = value(formData, "setup_id");
+
+  if (!setupId) redirect("/assessments?error=Assessment+setup+is+missing.");
+
+  const { data, error } = await supabase.rpc("initialize_standard_ca_assessments", {
+    p_setup_id: setupId,
+  });
+
+  if (error) {
+    redirect("/assessments/" + setupId + "?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/assessments/" + setupId);
+  revalidatePath("/results");
+  redirect(
+    "/assessments/" + setupId + "?ok=" +
+      encodeURIComponent("Standard CA setup ready. Created " + String(data || 0) + " missing assessment slots; existing slots were preserved."),
+  );
 }
 
 export async function saveCaAssessmentAction(formData: FormData) {

@@ -345,12 +345,6 @@ export async function provisionOrResetStaffLogin(
 
     if (profile) {
       username = profile.username;
-      if (!deliveryEmail) {
-        const profileEmail = validStaffEmail(profile.email);
-        if (profileEmail && !profileEmail.endsWith(".atis.invalid")) {
-          deliveryEmail = profileEmail;
-        }
-      }
     } else {
       const preferred = String((staff.legacy_payload as any)?.source_username || "");
       username = await generateUniqueUsername(admin, staff.full_name, preferred);
@@ -374,7 +368,7 @@ export async function provisionOrResetStaffLogin(
         must_change_password: true,
       });
       if (profileError) throw profileError;
-      if (!deliveryEmail) deliveryEmail = authEmail;
+      // Do not use an internal synthetic address for email delivery.
     }
 
     const { error: updateAuthError } = await admin.auth.admin.updateUserById(userId, {
@@ -384,18 +378,14 @@ export async function provisionOrResetStaffLogin(
     });
     if (updateAuthError) throw updateAuthError;
   } else {
-    // A real email is needed only when creating a new Supabase Auth account.
-    if (!staffEmail) {
-      throw new Error(
-        "A valid staff email address is required before creating login access. Existing accounts can be reset without email delivery.",
-      );
-    }
-
     const preferred = String((staff.legacy_payload as any)?.source_username || "");
     username = await generateUniqueUsername(admin, staff.full_name, preferred);
+    // Supabase Auth requires an email identifier. This reserved internal address is
+    // never stored as the staff contact email and is never used for email delivery.
+    const authEmail = staffEmail || `${username}@staff.atis.invalid`;
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
-      email: staffEmail,
+      email: authEmail,
       password: temporaryPassword,
       email_confirm: true,
       user_metadata: { username, full_name: staff.full_name },
@@ -410,7 +400,7 @@ export async function provisionOrResetStaffLogin(
       school_id: args.schoolId,
       username,
       full_name: staff.full_name,
-      email: staffEmail,
+      email: authEmail,
       mobile: staff.mobile || null,
       role: staff.role,
       status: "active",

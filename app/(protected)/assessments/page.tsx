@@ -64,7 +64,7 @@ export default async function AssessmentsPage({
           <h1>{canConfigure ? "Assessments & Scores" : "My Assessments"}</h1>
           <p>
             {canConfigure
-              ? "Configure CA and examination weighting, review subject setups and prepare results."
+              ? "Configure CA and examination weighting, the raw CA maximum for each class-subject, and prepare results."
               : "Enter scores only for the classes and subjects assigned to you."}
           </p>
         </div>
@@ -120,8 +120,13 @@ export default async function AssessmentsPage({
               </select>
             </div>
             <div className="form-grid">
-              <div className="field"><label>CA weight</label><input name="ca_weight" type="number" defaultValue="40" min="0" max="100" /></div>
-              <div className="field"><label>Exam weight</label><input name="exam_weight" type="number" defaultValue="60" min="0" max="100" /></div>
+              <div className="field"><label>CA weight (%)</label><input name="ca_weight" type="number" defaultValue="40" min="0" max="100" /></div>
+              <div className="field"><label>Exam weight (%)</label><input name="exam_weight" type="number" defaultValue="60" min="0" max="100" /></div>
+              <div className="field">
+                <label>Raw CA maximum mark</label>
+                <input name="ca_max_mark" type="number" min="1" step="0.01" defaultValue="130" required />
+                <small className="muted">Set per class-subject, e.g. 130 or 160. CA is scaled to the configured CA weight.</small>
+              </div>
             </div>
             <div className="field">
               <label>Grade scheme</label>
@@ -157,7 +162,7 @@ export default async function AssessmentsPage({
               <span>CA <strong>{s.ca_weight}%</strong></span>
               <span>Exam <strong>{s.exam_weight}%</strong></span>
             </div>
-            <small>{s.scheme_name}</small>
+            <small>Raw CA maximum: {s.ca_max_mark} · {s.scheme_name}</small>
             <Link className="button compact" href={"/assessments/" + s.id}>Open subject</Link>
           </article>
         ))}
