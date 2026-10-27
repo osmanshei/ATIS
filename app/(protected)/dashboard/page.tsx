@@ -251,10 +251,10 @@ export default async function DashboardPage({
         </section>
         <section className="card">
           <div className="eyebrow">Build progress</div>
-          <h2 className="section-title">ATIS Web v0.10.1</h2>
+          <h2 className="section-title">ATIS Web v0.10.2</h2>
           <p className="muted">
             Role-specific teacher access, attendance, assessments, report cards and the core Finance module are now in place.
-            Parent/student self-service, private student/staff photos, subject aspects and timetable scheduling are included. Feeding now follows attendance-linked prepaid credits with daily/weekly/monthly/termly plans and staff-child exemptions. Payroll now follows staff categories, early-attendance and long-service allowances, other allowances, statutory deductions and loan servicing. Staff password changes use a dedicated API route. Communications and advanced HR/operations remain.
+            Parent/student self-service, private student/staff photos, subject aspects and timetable scheduling are included. Feeding now follows attendance-linked prepaid credits with daily/weekly/monthly/termly plans and staff-child exemptions. Payroll follows staff categories, device-verified early attendance, long-service allowances, other allowances, statutory deductions and loan servicing. Teacher assignment now supports one teacher, one class and multiple subjects with class-teacher responsibility. Staff password changes use a dedicated API route. Communications and advanced HR/operations remain.
           </p>
         </section>
       </div>
