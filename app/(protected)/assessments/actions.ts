@@ -140,3 +140,86 @@ export async function saveExamScoresAction(formData: FormData) {
   revalidatePath("/results");
   redirect("/assessments/" + setupId + "/exam?ok=Exam+scores+saved.");
 }
+
+
+export async function saveAllCaScoresAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "teacher"]);
+  const setupId = value(formData, "setup_id");
+  let groups: unknown;
+
+  try {
+    groups = JSON.parse(value(formData, "records_json"));
+  } catch {
+    redirect("/assessments/" + setupId + "/ca-entry?error=Invalid+scorebook+payload.");
+  }
+
+  if (!setupId || !Array.isArray(groups) || groups.length === 0) {
+    redirect("/assessments/" + setupId + "/ca-entry?error=No+CA+assessment+scores+were+provided.");
+  }
+
+  const { data: setup, error: setupError } = await supabase
+    .from("assessment_setup_summary")
+    .select("id,status")
+    .eq("id", setupId)
+    .maybeSingle();
+
+  if (setupError || !setup) {
+    redirect("/assessments?error=Assessment+setup+not+found.");
+  }
+  if (setup.status === "locked") {
+    redirect("/assessments/" + setupId + "/ca-entry?error=This+subject+setup+is+locked.");
+  }
+
+  const { data: availableAssessments, error: assessmentError } = await supabase
+    .from("ca_assessment_summary")
+    .select("id,setup_id,status")
+    .eq("setup_id", setupId);
+
+  if (assessmentError) {
+    redirect("/assessments/" + setupId + "/ca-entry?error=" + encodeURIComponent(assessmentError.message));
+  }
+
+  const byId = new Map((availableAssessments || []).map((assessment: any) => [assessment.id, assessment]));
+  const submittedIds = new Set<string>();
+
+  for (const item of groups as any[]) {
+    const assessmentId = String(item?.assessment_id || "");
+    const assessment = byId.get(assessmentId) as any;
+    if (!assessment || assessment.setup_id !== setupId) {
+      redirect("/assessments/" + setupId + "/ca-entry?error=An+assessment+does+not+belong+to+this+subject.");
+    }
+    if (assessment.status === "closed") {
+      redirect("/assessments/" + setupId + "/ca-entry?error=One+or+more+CA+assessments+are+closed.+Use+the+individual+assessment+page+to+manage+them.");
+    }
+    if (submittedIds.has(assessmentId)) {
+      redirect("/assessments/" + setupId + "/ca-entry?error=Duplicate+assessment+in+the+scorebook+payload.");
+    }
+    submittedIds.add(assessmentId);
+    if (!Array.isArray(item.records)) {
+      redirect("/assessments/" + setupId + "/ca-entry?error=Invalid+student+scores+in+the+scorebook.");
+    }
+  }
+
+  let savedGroups = 0;
+  for (const item of groups as any[]) {
+    const { error } = await supabase.rpc("save_ca_scores", {
+      p_assessment_id: String(item.assessment_id),
+      p_records: item.records,
+    });
+    if (error) {
+      const detail = savedGroups
+        ? "Some assessment columns may already have been saved. " + error.message
+        : error.message;
+      redirect("/assessments/" + setupId + "/ca-entry?error=" + encodeURIComponent(detail));
+    }
+    savedGroups += 1;
+  }
+
+  revalidatePath("/assessments/" + setupId);
+  revalidatePath("/assessments/" + setupId + "/ca-entry");
+  revalidatePath("/results");
+  redirect(
+    "/assessments/" + setupId + "/ca-entry?ok=" +
+      encodeURIComponent("Saved CA scores for " + savedGroups + " assessment columns."),
+  );
+}
