@@ -267,6 +267,70 @@ function parseSummaryLikeSheet(
   return imported;
 }
 
+function parseTimeMatrixWithoutHeader(
+  rows: unknown[][],
+  sheetName: string,
+): DeviceAttendanceImportRow[] {
+  const period = parsePeriod(rows);
+  if (!period) return [];
+
+  const imported: DeviceAttendanceImportRow[] = [];
+
+  rows.forEach((row, rowIndex) => {
+    const dayColumns = findDayColumns(rows, rowIndex);
+    if (dayColumns.size < 5) return;
+
+    const parsedTimes = Array.from(dayColumns.entries())
+      .map(([colIndex, day]) => ({
+        colIndex,
+        day,
+        time: parseTime(row[colIndex]),
+      }))
+      .filter((item) => item.time !== null) as Array<{
+        colIndex: number;
+        day: number;
+        time: string;
+      }>;
+
+    if (parsedTimes.length < 3) return;
+
+    const firstTimeCol = Math.min(...parsedTimes.map((item) => item.colIndex));
+    const candidateTexts = row
+      .slice(0, firstTimeCol)
+      .map(textOf)
+      .filter(looksLikePersonName)
+      .filter((value) => value.toLowerCase() !== "school");
+
+    if (!candidateTexts.length) return;
+
+    const staffName = candidateTexts[0];
+
+    parsedTimes.forEach((item) => {
+      const attendanceDate = dateForDay(period, item.day);
+      if (!attendanceDate) return;
+
+      imported.push({
+        device_user_id: "",
+        staff_name: staffName,
+        attendance_date: attendanceDate,
+        check_in_time: item.time,
+        check_out_time: "",
+        status: "present",
+        device_record_id:
+          sheetName +
+          ":" +
+          staffName +
+          ":" +
+          attendanceDate +
+          ":" +
+          item.time,
+      });
+    });
+  });
+
+  return imported;
+}
+
 function deduplicate(rows: DeviceAttendanceImportRow[]) {
   const map = new Map<string, DeviceAttendanceImportRow>();
 
@@ -304,8 +368,20 @@ export function parseLegacyAttendanceXls(bytes: Uint8Array) {
   const all: DeviceAttendanceImportRow[] = [];
 
   for (const sheet of preferred) {
-    const rows = parseSummaryLikeSheet(sheet.rows as unknown[][], sheet.name);
-    if (rows.length) all.push(...rows);
+    const matrixRows = parseSummaryLikeSheet(
+      sheet.rows as unknown[][],
+      sheet.name,
+    );
+    if (matrixRows.length) {
+      all.push(...matrixRows);
+      continue;
+    }
+
+    const fallbackRows = parseTimeMatrixWithoutHeader(
+      sheet.rows as unknown[][],
+      sheet.name,
+    );
+    if (fallbackRows.length) all.push(...fallbackRows);
   }
 
   const result = deduplicate(all);
