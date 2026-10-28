@@ -114,10 +114,13 @@ export function CaScoreMatrix({
 
   function updateCell(assessmentId: string, studentId: string, patch: Partial<Cell>) {
     const key = cellKey(assessmentId, studentId);
-    setCells((current) => ({
-      ...current,
-      [key]: { score: "", absent: false, remark: "", ...current[key], ...patch },
-    }));
+    setCells((current) => {
+      const existing = current[key] ?? { score: "", absent: false, remark: "" };
+      return {
+        ...current,
+        [key]: { ...existing, ...patch },
+      };
+    });
   }
 
   return (
