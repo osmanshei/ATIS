@@ -59,6 +59,21 @@ export async function updateStudentAction(formData: FormData) {
     redirect("/students/" + studentId + "/edit?error=" + encodeURIComponent(error.message));
   }
 
+  if (["admin", "supervisor"].includes(profile.role)) {
+    const studentSection = value(formData, "student_section");
+    if (!["Red", "Yellow", "Green", "Blue"].includes(studentSection)) {
+      redirect("/students/" + studentId + "/edit?error=" + encodeURIComponent("Choose Red, Yellow, Green or Blue for the student's colour section."));
+    }
+    const { error: sectionError } = await supabase
+      .from("students")
+      .update({ student_section: studentSection })
+      .eq("id", studentId)
+      .eq("school_id", profile.school_id);
+    if (sectionError) {
+      redirect("/students/" + studentId + "/edit?error=" + encodeURIComponent("Student details were saved, but the colour section could not be updated: " + sectionError.message));
+    }
+  }
+
   if (photo instanceof File && photo.size > 0) {
     try {
       await uploadStudentPhoto(supabase, {
