@@ -4,17 +4,21 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 
+const COLOUR_SECTIONS = ["Red", "Yellow", "Green", "Blue"] as const;
+
 export async function assignSectionMasterAction(formData: FormData) {
-  const { supabase, profile } = await requireProfile(["admin", "supervisor"]);
-  const classId = String(formData.get("class_id") || "").trim();
+  const { supabase, profile } = await requireProfile(["admin"]);
+  const sectionName = String(formData.get("section_name") || "").trim();
   const teacherId = String(formData.get("teacher_id") || "").trim();
 
-  if (!classId) redirect("/sections?error=Select+a+section+first.");
+  if (!COLOUR_SECTIONS.includes(sectionName as (typeof COLOUR_SECTIONS)[number])) {
+    redirect("/sections?error=" + encodeURIComponent("Choose a valid colour section."));
+  }
 
   if (teacherId) {
     const { data: teacher, error: teacherError } = await supabase
       .from("staff")
-      .select("id,full_name")
+      .select("id")
       .eq("id", teacherId)
       .eq("school_id", profile.school_id)
       .eq("role", "teacher")
@@ -22,32 +26,23 @@ export async function assignSectionMasterAction(formData: FormData) {
       .maybeSingle();
 
     if (teacherError || !teacher) {
-      redirect("/sections/" + classId + "?error=" + encodeURIComponent("Choose an active teacher from this school."));
+      redirect("/sections/" + sectionName.toLowerCase() + "?error=" + encodeURIComponent("Choose an active teacher from this school."));
     }
   }
 
-  const { data: cls, error: classError } = await supabase
-    .from("classes")
-    .select("id")
-    .eq("id", classId)
-    .eq("school_id", profile.school_id)
-    .maybeSingle();
-
-  if (classError || !cls) redirect("/sections?error=Section+not+found.");
-
   const { error } = await supabase
-    .from("classes")
-    .update({ class_teacher_id: teacherId || null })
-    .eq("id", classId)
-    .eq("school_id", profile.school_id);
+    .from("school_sections")
+    .update({ section_master_id: teacherId || null })
+    .eq("school_id", profile.school_id)
+    .eq("section_name", sectionName);
 
   if (error) {
-    redirect("/sections/" + classId + "?error=" + encodeURIComponent(error.message));
+    redirect("/sections/" + sectionName.toLowerCase() + "?error=" + encodeURIComponent(error.message));
   }
 
   revalidatePath("/sections");
-  revalidatePath("/sections/" + classId);
-  revalidatePath("/classes");
-  revalidatePath("/students");
-  redirect("/sections/" + classId + "?ok=" + encodeURIComponent(teacherId ? "Section master assigned." : "Section master assignment cleared."));
+  revalidatePath("/sections/" + sectionName.toLowerCase());
+  redirect("/sections/" + sectionName.toLowerCase() + "?ok=" + encodeURIComponent(
+    teacherId ? sectionName + " Section Master assigned." : sectionName + " Section Master assignment cleared."
+  ));
 }
