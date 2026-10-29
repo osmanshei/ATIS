@@ -80,6 +80,7 @@ export async function enrollAdmissionAction(formData: FormData) {
   if (error) redirect(`/admissions?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/admissions");
   revalidatePath("/students");
+  revalidatePath("/sections");
   revalidatePath("/dashboard");
   redirect("/admissions?ok=Student+enrolled+successfully.");
 }
