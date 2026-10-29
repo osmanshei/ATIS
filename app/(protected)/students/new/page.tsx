@@ -24,7 +24,7 @@ export default async function NewStudentPage({
           <div className="eyebrow">Students · direct enrolment</div>
           <h1>Add Student</h1>
           <p>
-            Add an already-enrolled learner directly to the student register.
+            Add an already-enrolled learner directly to the student register. The system will automatically place the student in the least-populated colour section (Red, Yellow, Green or Blue).
             Use Admissions instead when you need the applicant approval and admission-letter workflow.
           </p>
         </div>
