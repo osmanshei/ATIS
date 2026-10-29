@@ -97,6 +97,23 @@ export default async function EditStudentPage({
               ))}
             </select>
           </div>
+          {["admin", "supervisor"].includes(profile.role) ? (
+            <div className="field">
+              <label>Colour Section</label>
+              <select name="student_section" defaultValue={student.student_section || "Red"} required>
+                <option value="Red">Red</option>
+                <option value="Yellow">Yellow</option>
+                <option value="Green">Green</option>
+                <option value="Blue">Blue</option>
+              </select>
+              <small className="muted">The school-wide section is separate from the student's class group.</small>
+            </div>
+          ) : (
+            <div className="field">
+              <label>Colour Section</label>
+              <input value={student.student_section || "Not assigned"} readOnly />
+            </div>
+          )}
           <div className="field"><label>Category</label><input name="category" defaultValue={student.category || ""} /></div>
           <div className="field">
             <label>Status</label>
