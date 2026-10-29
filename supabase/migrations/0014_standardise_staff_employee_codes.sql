@@ -29,12 +29,39 @@ set staff_id = excluded.staff_id;
 
 -- Renumber every staff member, including inactive staff, consistently per school.
 with legacy_max as (
-  -- Start above every historical code that already resembles the new format.
-  -- This prevents an old device code from becoming another employee's new code.
+  -- Preserve a safe sequence above historical codes already using ATIS-STF-NNNN.
   select
     school_id,
     coalesce(
-      max(substring(legacy_employee_code::text from '^ATIS-STF-([0-9]+)
+      max(
+        case
+          when split_part(legacy_employee_code::text, '-', 1) = 'ATIS'
+           and split_part(legacy_employee_code::text, '-', 2) = 'STF'
+           and split_part(legacy_employee_code::text, '-', 3) ~ '^[0-9]+$'
+          then split_part(legacy_employee_code::text, '-', 3)::bigint
+          else null
+        end
+      ),
+      0
+    ) as last_legacy_number
+  from public.staff_employee_code_history
+  group by school_id
+),
+numbered as (
+  select
+    s.id,
+    row_number() over (
+      partition by s.school_id
+      order by s.created_at asc, s.id asc
+    ) + coalesce(lm.last_legacy_number, 0) as staff_number
+  from public.staff s
+  left join legacy_max lm on lm.school_id = s.school_id
+)
+update public.staff s
+set employee_code = 'ATIS-STF-' || lpad(numbered.staff_number::text, 4, '0'),
+    updated_at = now()
+from numbered
+where numbered.id = s.id;
 
 -- Keep the generator in sync so the next new employee receives the next number.
 create table if not exists public.staff_employee_code_counters (
@@ -46,7 +73,13 @@ create table if not exists public.staff_employee_code_counters (
 insert into public.staff_employee_code_counters (school_id, last_number)
 select
   school_id,
-  max(substring(employee_code::text from '^ATIS-STF-([0-9]+)
+  max(split_part(employee_code::text, '-', 3)::bigint)
+from public.staff
+group by school_id
+on conflict (school_id) do update
+set last_number = excluded.last_number,
+    updated_at = now();
+
 
 alter table public.staff_employee_code_counters enable row level security;
 revoke all on table public.staff_employee_code_counters from anon, authenticated;
@@ -1029,7 +1062,5 @@ $$;
 
 revoke all on function public.import_staff_device_attendance(jsonb,text) from public;
 grant execute on function public.import_staff_device_attendance(jsonb,text) to authenticated;
-
-commit;
 
 commit;
