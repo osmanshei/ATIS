@@ -137,6 +137,7 @@ export async function bulkImportStudentsAction(formData: FormData) {
   const totalDuplicates = duplicates + databaseDuplicates;
 
   revalidatePath("/students");
+  revalidatePath("/sections");
   revalidatePath("/dashboard");
   revalidatePath("/classes");
 
