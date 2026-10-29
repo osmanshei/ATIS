@@ -3007,3 +3007,26 @@ tbody tr:hover { background: #fbfdfb; }
   }
 }
 
+/* ATIS school-wide colour sections */
+.colour-section-card { border-top: 5px solid var(--line); }
+.colour-section-card h2 { margin: 3px 0 0; font-size: 25px; }
+.section-card-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+.section-count { font-size:28px; font-weight:850; text-align:right; }
+.section-count small { display:block; color:var(--muted); font-size:10px; font-weight:600; }
+.section-red { --section-accent:#c62828; }
+.section-yellow { --section-accent:#d6a400; }
+.section-green { --section-accent:#23834b; }
+.section-blue { --section-accent:#2366b1; }
+.colour-section-card.section-red,
+.colour-section-card.section-yellow,
+.colour-section-card.section-green,
+.colour-section-card.section-blue { border-top-color:var(--section-accent); }
+.section-register.section-red .document-header h2 { color:#a51f1f; }
+.section-register.section-yellow .document-header h2 { color:#8c6b00; }
+.section-register.section-green .document-header h2 { color:#176b3b; }
+.section-register.section-blue .document-header h2 { color:#1b5594; }
+.section-register .document-meta-grid > div:first-child { border-top:3px solid var(--section-accent); }
+@media print {
+  .colour-section-card { box-shadow:none; }
+}
+
