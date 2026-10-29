@@ -51,6 +51,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["admin", "supervisor", "clerk"],
   },
   {
+    href: "/sections",
+    label: "Section Registers",
+    short: "CL",
+    roles: ["admin", "supervisor", "clerk"],
+  },
+  {
     href: "/subjects",
     label: "Subjects",
     short: "SU",
