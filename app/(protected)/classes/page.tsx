@@ -15,13 +15,13 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <div className="page-head"><div><h1>Classes & Sections</h1><p>Manage class groups and their sections. Strength is calculated from active student records.</p></div><div className="action-row"><Link className="button secondary" href="/sections">Colour Sections & Masters</Link></div></div>
+      <div className="page-head"><div><h1>Classes & Class Groups</h1><p>Manage classes and their optional parallel class groups. Colour sections are managed separately. Strength is calculated from active student records.</p></div><div className="action-row"><Link className="button secondary" href="/sections">Colour Sections & Masters</Link></div></div>
       {params.ok ? <div className="notice success">{params.ok}</div> : null}
       {params.error ? <div className="notice error">{params.error}</div> : null}
       {canEdit ? (
         <form className="form-card form-grid" action={createClassAction}>
           <div className="field"><label>Class name</label><input name="class_name" placeholder="e.g. BASIC SEVEN" required /></div>
-          <div className="field"><label>Section (optional)</label><input name="section" placeholder="A / B / blank" /></div>
+          <div className="field"><label>Class Group (optional)</label><input name="section" placeholder="A / B / blank" /></div>
           <div className="field"><label>Grade level</label><input name="grade_level" type="number" min="0" max="20" /></div>
           <div className="field"><label>Max capacity</label><input name="max_capacity" type="number" min="1" /></div>
           <button className="button" type="submit">Add class</button>
@@ -29,7 +29,7 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
       ) : null}
       {error ? <div className="notice error">{error.message}</div> : null}
       <div className="table-wrap"><table>
-        <thead><tr><th>Class</th><th>Section</th><th>Grade</th><th>Strength</th><th>Capacity</th><th>Room</th><th>Status</th><th>Action</th></tr></thead>
+        <thead><tr><th>Class</th><th>Class Group</th><th>Grade</th><th>Strength</th><th>Capacity</th><th>Room</th><th>Status</th><th>Action</th></tr></thead>
         <tbody>
           {rows.map((r) => <tr key={r.id}><td><strong>{r.class_name}</strong></td><td>{r.section || "—"}</td><td>{r.grade_level ?? "—"}</td><td>{r.total_strength}</td><td>{r.max_capacity ?? "—"}</td><td>{r.room_number || "—"}</td><td>{r.is_active ? "Active" : "Inactive"}</td><td>{canEdit ? <Link className="button secondary compact" href={"/classes/" + r.id + "/edit"}>Edit</Link> : "—"}</td></tr>)}
           {!rows.length ? <tr><td colSpan={8} className="muted">No classes yet.</td></tr> : null}
