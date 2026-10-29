@@ -193,6 +193,7 @@ export async function createStudentAction(formData: FormData) {
   }
 
   revalidatePath("/students");
+  revalidatePath("/sections");
   revalidatePath("/dashboard");
   revalidatePath("/classes");
   revalidatePath("/finance");
