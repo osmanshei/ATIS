@@ -92,7 +92,7 @@ export default async function EditStudentPage({
               <option value="">Unassigned</option>
               {(classes || []).map((c: any) => (
                 <option key={c.id} value={c.id}>
-                  {c.class_name}{c.section ? " / " + c.section : ""}{!c.is_active ? " · Inactive" : ""}
+                  {c.class_name}{c.section ? " · Group " + c.section : ""}{!c.is_active ? " · Inactive" : ""}
                 </option>
               ))}
             </select>
