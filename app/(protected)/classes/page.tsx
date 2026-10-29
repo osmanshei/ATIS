@@ -15,7 +15,7 @@ export default async function ClassesPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <div className="page-head"><div><h1>Classes & Sections</h1><p>Manage class groups and their sections. Strength is calculated from active student records.</p></div><div className="action-row"><Link className="button secondary" href="/sections">Section Registers & Masters</Link></div></div>
+      <div className="page-head"><div><h1>Classes & Sections</h1><p>Manage class groups and their sections. Strength is calculated from active student records.</p></div><div className="action-row"><Link className="button secondary" href="/sections">Colour Sections & Masters</Link></div></div>
       {params.ok ? <div className="notice success">{params.ok}</div> : null}
       {params.error ? <div className="notice error">{params.error}</div> : null}
       {canEdit ? (
