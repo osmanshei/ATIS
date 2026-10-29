@@ -85,7 +85,6 @@ export async function bulkOnboardStaffAction(
 
   const seenEmail = new Set<string>();
   const seenPhone = new Set<string>();
-  const seenCode = new Set<string>();
 
   const credentials: StaffCredentialRow[] = [];
   let skipped = 0;
@@ -108,28 +107,26 @@ export async function bulkOnboardStaffAction(
       continue;
     }
 
-    const suppliedCode = field(row, "Employee Code", "EmployeeCode");
-    const codeKey = suppliedCode.toLowerCase();
-
     if (
       (email && (emailSet.has(email) || seenEmail.has(email))) ||
       phoneSet.has(normalizedPhone) ||
-      (suppliedCode && codeSet.has(codeKey)) ||
-      seenPhone.has(normalizedPhone) ||
-      (suppliedCode && seenCode.has(codeKey))
+      seenPhone.has(normalizedPhone)
     ) {
       skipped += 1;
       continue;
     }
 
-    let employeeCode = suppliedCode;
-    if (!employeeCode) {
+    // Always use the ATIS employee-code sequence. Any code supplied in the CSV is ignored.
+    let employeeCode = "";
+    for (let attempt = 0; attempt < 20 && !employeeCode; attempt += 1) {
       const { data: generatedCode, error: codeError } = await supabase.rpc("next_staff_employee_code");
-      if (codeError || !generatedCode) {
-        invalid += 1;
-        continue;
-      }
-      employeeCode = String(generatedCode);
+      if (codeError || !generatedCode) break;
+      const candidate = String(generatedCode);
+      if (!codeSet.has(candidate.toLowerCase())) employeeCode = candidate;
+    }
+    if (!employeeCode) {
+      invalid += 1;
+      continue;
     }
 
     const roleRaw = field(row, "Role", "Position", "Staff Role");
@@ -206,7 +203,6 @@ export async function bulkOnboardStaffAction(
       phoneSet.add(normalizedPhone);
       codeSet.add(employeeCode.toLowerCase());
       seenPhone.add(normalizedPhone);
-      seenCode.add(employeeCode.toLowerCase());
     } catch {
       await admin.from("staff").delete().eq("id", staff.id);
       invalid += 1;
@@ -311,8 +307,14 @@ export async function createSingleStaffAction(
     }
   }
 
-  let employeeCode = clean(String(formData.get("employee_code") || ""));
-  if (!employeeCode) {
+  // Employee codes are system-generated; manually supplied values are not accepted.
+  const { data: existingCodes } = await admin
+    .from("staff")
+    .select("employee_code")
+    .eq("school_id", profile.school_id);
+  const usedCodes = new Set((existingCodes || []).map((row: any) => clean(row.employee_code || "").toLowerCase()));
+  let employeeCode = "";
+  for (let attempt = 0; attempt < 20 && !employeeCode; attempt += 1) {
     const { data: generatedCode, error: codeError } = await supabase.rpc("next_staff_employee_code");
     if (codeError || !generatedCode) {
       return {
@@ -320,22 +322,11 @@ export async function createSingleStaffAction(
         message: codeError?.message || "Could not generate an employee code.",
       };
     }
-    employeeCode = String(generatedCode);
+    const candidate = String(generatedCode);
+    if (!usedCodes.has(candidate.toLowerCase())) employeeCode = candidate;
   }
-
-  const { data: duplicateCode } = await admin
-    .from("staff")
-    .select("id")
-    .eq("school_id", profile.school_id)
-    .ilike("employee_code", employeeCode)
-    .limit(1)
-    .maybeSingle();
-
-  if (duplicateCode) {
-    return {
-      ok: false,
-      message: "That employee code is already in use.",
-    };
+  if (!employeeCode) {
+    return { ok: false, message: "Could not generate a unique employee code. Please try again." };
   }
 
   const position =
