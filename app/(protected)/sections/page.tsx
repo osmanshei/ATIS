@@ -21,7 +21,9 @@ export default async function SectionsPage({
   const { data: teachers } = teacherIds.length
     ? await supabase.from("staff").select("id,full_name").in("id", teacherIds)
     : { data: [] as any[] };
-  const teacherNames = new Map((teachers || []).map((teacher: any) => [teacher.id, teacher.full_name]));
+  const teacherNames = new Map<string, string>(
+    (teachers || []).map((teacher: any) => [String(teacher.id), String(teacher.full_name)] as [string, string]),
+  );
 
   const activeClassIds = rows.filter((row) => row.is_active).map((row) => row.id);
   const { data: activeStudents } = activeClassIds.length
