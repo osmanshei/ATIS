@@ -93,6 +93,7 @@ export async function updateStudentAction(formData: FormData) {
   }
 
   revalidatePath("/students");
+  revalidatePath("/sections");
   revalidatePath("/students/" + studentId + "/edit");
   revalidatePath("/finance");
   revalidatePath("/finance/balances");
