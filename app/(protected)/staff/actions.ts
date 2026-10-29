@@ -25,7 +25,7 @@ export async function updateStaffAction(formData: FormData) {
 
   const { data: current, error: loadError } = await supabase
     .from("staff")
-    .select("id,user_id,email,profile_photo_url")
+    .select("id,user_id,email,profile_photo_url,employee_code")
     .eq("id", staffId)
     .single();
 
@@ -53,7 +53,7 @@ export async function updateStaffAction(formData: FormData) {
   }
 
   const payload = {
-    employee_code: value(formData, "employee_code"),
+    employee_code: current.employee_code,
     full_name: value(formData, "full_name"),
     email: newEmail,
     mobile: value(formData, "mobile"),
