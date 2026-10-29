@@ -26,7 +26,7 @@ insert into public.staff_employee_code_history (
 select school_id, id, employee_code::text
 from public.staff
 where nullif(trim(employee_code::text), '') is not null
-on conflict (school_id, lower(legacy_employee_code)) do update
+on conflict (school_id, (lower(legacy_employee_code))) do update
 set staff_id = excluded.staff_id;
 
 -- Renumber every staff member (active and inactive) within each school.
