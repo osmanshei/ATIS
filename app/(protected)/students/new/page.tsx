@@ -49,7 +49,7 @@ export default async function NewStudentPage({
               <option value="">Choose class...</option>
               {(classes || []).map((c: any) => (
                 <option key={c.id} value={c.id}>
-                  {c.class_name}{c.section ? " / " + c.section : ""}
+                  {c.class_name}{c.section ? " · Group " + c.section : ""}
                 </option>
               ))}
             </select>
