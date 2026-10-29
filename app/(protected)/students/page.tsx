@@ -103,6 +103,7 @@ export default async function StudentsPage({
         <div className="action-row">
           <Link className="button" href="/students/new">Add Student</Link>
           <Link className="button secondary" href="/bulk-onboarding">Bulk Onboarding</Link>
+          <Link className="button secondary" href="/sections">Colour Sections</Link>
           <span className="tag">{total} records</span>
         </div>
       </div>
