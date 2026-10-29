@@ -35,10 +35,6 @@ export function StaffSingleOnboarding() {
             <small className="muted">Leave blank if the staff member has no email address.</small>
           </div>
           <div className="field">
-            <label>Employee code</label>
-            <input name="employee_code" placeholder="Leave blank for ATIS to generate" />
-          </div>
-          <div className="field">
             <label>System role</label>
             <select name="role" defaultValue="teacher">
               <option value="teacher">Teacher</option>
