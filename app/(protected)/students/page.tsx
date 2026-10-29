@@ -154,7 +154,7 @@ export default async function StudentsPage({
           <thead>
             <tr>
               <th>Admission No.</th><th>Student</th><th>Gender</th>
-              <th>Date of birth</th><th>Class</th><th>Status</th><th>Action</th>
+              <th>Date of birth</th><th>Class</th><th>Section</th><th>Status</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -164,7 +164,8 @@ export default async function StudentsPage({
                 <td><strong>{[r.first_name, r.middle_name, r.last_name].filter(Boolean).join(" ")}</strong></td>
                 <td>{r.gender || "—"}</td>
                 <td>{r.date_of_birth || "—"}</td>
-                <td>{r.classes ? r.classes.class_name + (r.classes.section ? " / " + r.classes.section : "") : "Unassigned"}</td>
+                <td>{r.classes ? r.classes.class_name : "Unassigned"}</td>
+                <td>{r.classes?.section ? <span className="tag">Section {r.classes.section}</span> : <span className="muted">Not specified</span>}</td>
                 <td><span className="tag gray">{r.status}</span></td>
                 <td>
                   <div className="action-row">
@@ -177,7 +178,7 @@ export default async function StudentsPage({
               </tr>
             ))}
             {!rows.length ? (
-              <tr><td colSpan={7} className="muted">No students match the selected search or filters.</td></tr>
+              <tr><td colSpan={8} className="muted">No students match the selected search or filters.</td></tr>
             ) : null}
           </tbody>
         </table>
