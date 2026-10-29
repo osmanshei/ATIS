@@ -54,7 +54,7 @@ export default async function StudentsPage({
   let rowsQuery = supabase
     .from("students")
     .select(
-      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,status,class_id,classes(class_name,section)",
+      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,status,class_id,student_section,classes(class_name,section)",
     );
 
   if (classId) {
@@ -154,7 +154,7 @@ export default async function StudentsPage({
           <thead>
             <tr>
               <th>Admission No.</th><th>Student</th><th>Gender</th>
-              <th>Date of birth</th><th>Class</th><th>Section</th><th>Status</th><th>Action</th>
+              <th>Date of birth</th><th>Class</th><th>Class Group</th><th>Colour Section</th><th>Status</th><th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -165,7 +165,8 @@ export default async function StudentsPage({
                 <td>{r.gender || "—"}</td>
                 <td>{r.date_of_birth || "—"}</td>
                 <td>{r.classes ? r.classes.class_name : "Unassigned"}</td>
-                <td>{r.classes?.section ? <span className="tag">Section {r.classes.section}</span> : <span className="muted">Not specified</span>}</td>
+                <td>{r.classes?.section ? <span className="tag">Group {r.classes.section}</span> : <span className="muted">—</span>}</td>
+                <td><span className="tag">{r.student_section || "Not assigned"}</span></td>
                 <td><span className="tag gray">{r.status}</span></td>
                 <td>
                   <div className="action-row">
@@ -178,7 +179,7 @@ export default async function StudentsPage({
               </tr>
             ))}
             {!rows.length ? (
-              <tr><td colSpan={8} className="muted">No students match the selected search or filters.</td></tr>
+              <tr><td colSpan={9} className="muted">No students match the selected search or filters.</td></tr>
             ) : null}
           </tbody>
         </table>
