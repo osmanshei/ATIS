@@ -28,7 +28,7 @@ export default async function EditClassPage({
         <input type="hidden" name="class_id" value={cls.id} />
         <div className="form-grid">
           <div className="field"><label>Class name</label><input name="class_name" defaultValue={cls.class_name || ""} required /></div>
-          <div className="field"><label>Section</label><input name="section" defaultValue={cls.section || ""} /></div>
+          <div className="field"><label>Class Group (optional)</label><input name="section" defaultValue={cls.section || ""} /></div>
           <div className="field"><label>Grade level</label><input name="grade_level" type="number" min="0" max="20" defaultValue={cls.grade_level ?? ""} /></div>
           <div className="field"><label>Class code</label><input name="class_code" defaultValue={cls.class_code || ""} /></div>
           <div className="field"><label>Max capacity</label><input name="max_capacity" type="number" min="1" defaultValue={cls.max_capacity ?? ""} /></div>
