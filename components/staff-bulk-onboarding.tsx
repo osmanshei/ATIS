@@ -40,8 +40,7 @@ export function StaffBulkOnboarding() {
       <form className="form-card" action={action}>
         <h2 className="section-title">Staff / Teacher CSV Import</h2>
         <p className="muted">
-          Required: Full Name and Phone Number. Email is optional. Role and every other field
-          are optional. Leave Role blank to default to Teacher.
+          Required: Full Name and Phone Number. Email is optional. ATIS automatically generates employee codes in the ATIS-STF-0001 format and ignores any employee codes in older CSV files. Leave Role blank to default to Teacher.
         </p>
         <div className="field">
           <label>CSV file</label>
