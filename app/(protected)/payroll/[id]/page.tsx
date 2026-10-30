@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import {
   approvePayrollRunAction,
+  deleteDraftPayrollRunAction,
   markPayrollPaidAction,
   savePayrollItemAction,
 } from "../actions";
@@ -123,6 +124,27 @@ export default async function PayrollRunPage({
           ) : null}
         </div>
       </section>
+
+      {editable ? (
+        <section className="card payroll-actions-card">
+          <h2 className="section-title">Replace this trial payroll</h2>
+          <p className="muted">
+            This run was generated using the settings available at the time. If you have since changed
+            payroll settings, delete this draft and generate a fresh run for the same month.
+            Its staff line items will be deleted. Approved and paid payroll cannot be deleted here.
+          </p>
+          <form action={deleteDraftPayrollRunAction} className="payroll-create-form">
+            <input type="hidden" name="run_id" value={id} />
+            <label className="field checkbox-field">
+              <span>
+                <input type="checkbox" name="confirm_delete" required />
+                I understand that deleting this draft is permanent.
+              </span>
+            </label>
+            <button className="button danger" type="submit">Delete Draft & Regenerate</button>
+          </form>
+        </section>
+      ) : null}
 
       <section className="panel-section">
         <div className="section-heading">
