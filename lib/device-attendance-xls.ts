@@ -183,6 +183,102 @@ function looksLikePersonName(value: string) {
   return /[a-z]/i.test(text);
 }
 
+function parseBlockAttendanceReportSheet(
+  rows: unknown[][],
+  sheetName: string,
+): DeviceAttendanceImportRow[] {
+  const period = parsePeriod(rows);
+  if (!period) return [];
+
+  const imported: DeviceAttendanceImportRow[] = [];
+
+  rows.forEach((headerRow, headerIndex) => {
+    const dateColumns = headerRow
+      .map((cell, colIndex) => ({ colIndex, header: normalizeHeader(cell) }))
+      .filter((item) => item.header === "date")
+      .map((item) => item.colIndex)
+      .sort((a, b) => a - b);
+
+    if (!dateColumns.length) return;
+
+    headerRow.forEach((cell, nameHeaderCol) => {
+      if (normalizeHeader(cell) !== "name") return;
+
+      const staffName = textOf(headerRow[nameHeaderCol + 1]);
+      if (!looksLikePersonName(staffName)) return;
+
+      // Each employee block has its own Date column. The closest Date
+      // heading to the left of Name identifies this employee's block.
+      const dateCol = dateColumns.filter((col) => col < nameHeaderCol).at(-1);
+      if (dateCol === undefined) return;
+
+      const nextDateCol = dateColumns.find((col) => col > dateCol);
+      const blockEnd = nextDateCol ?? Math.max(...rows.map((row) => row.length));
+
+      // Device reports place AM > In before the PM and overtime In columns.
+      // Selecting the first In column within this block therefore captures
+      // the first daily clock-in, which ATIS uses for its 07:30 early rule.
+      let checkInCol = -1;
+      const headerSearchEnd = Math.min(rows.length, headerIndex + 12);
+      for (let rowIndex = headerIndex + 1; rowIndex < headerSearchEnd; rowIndex += 1) {
+        const row = rows[rowIndex] || [];
+        const inColumns = row
+          .map((value, colIndex) => ({ value: normalizeHeader(value), colIndex }))
+          .filter(
+            (item) =>
+              item.value === "in" &&
+              item.colIndex >= dateCol &&
+              item.colIndex < blockEnd,
+          )
+          .map((item) => item.colIndex);
+
+        if (inColumns.length) {
+          checkInCol = Math.min(...inColumns);
+          break;
+        }
+      }
+      if (checkInCol < 0) return;
+
+      // The device includes a No field directly below the Name heading.
+      const identifierRow = rows[headerIndex + 1] || [];
+      const identifierLabel = normalizeHeader(identifierRow[nameHeaderCol]);
+      const deviceUserId =
+        ["no", "number", "id", "card", "userid"].includes(identifierLabel)
+          ? textOf(identifierRow[nameHeaderCol + 1])
+          : staffName;
+
+      for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
+        const row = rows[rowIndex] || [];
+        const day = parseDay(row[dateCol]);
+        if (day === null) continue;
+
+        const attendanceDate = dateForDay(period, day);
+        const checkIn = parseTime(row[checkInCol]);
+        if (!attendanceDate || !checkIn) continue;
+
+        imported.push({
+          device_user_id: deviceUserId || staffName,
+          staff_name: staffName,
+          attendance_date: attendanceDate,
+          check_in_time: checkIn,
+          check_out_time: "",
+          status: "present",
+          device_record_id:
+            sheetName +
+            ":" +
+            staffName +
+            ":" +
+            attendanceDate +
+            ":" +
+            checkIn,
+        });
+      }
+    });
+  });
+
+  return imported;
+}
+
 function parseSummaryLikeSheet(
   rows: unknown[][],
   sheetName: string,
@@ -368,6 +464,15 @@ export function parseLegacyAttendanceXls(bytes: Uint8Array) {
   const all: DeviceAttendanceImportRow[] = [];
 
   for (const sheet of preferred) {
+    const blockRows = parseBlockAttendanceReportSheet(
+      sheet.rows as unknown[][],
+      sheet.name,
+    );
+    if (blockRows.length) {
+      all.push(...blockRows);
+      continue;
+    }
+
     const matrixRows = parseSummaryLikeSheet(
       sheet.rows as unknown[][],
       sheet.name,
