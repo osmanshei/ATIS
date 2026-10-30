@@ -227,7 +227,8 @@ function parseBlockAttendanceReportSheet(
 
       if (dateHeaderRowIndex < 0) return;
 
-      const dateCol = dateColumns.filter((col) => col < nameHeaderCol).at(-1);
+      const precedingDateColumns = dateColumns.filter((col) => col < nameHeaderCol);
+      const dateCol = precedingDateColumns[precedingDateColumns.length - 1];
       if (dateCol === undefined) return;
 
       const nextDateCol = dateColumns.find((col) => col > dateCol);
@@ -235,7 +236,7 @@ function parseBlockAttendanceReportSheet(
 
       // The first In column in each employee block is the AM clock-in column;
       // later In columns belong to PM and overtime sections.
-      let checkInCol = -1;
+      let checkInColumns: number[] = [];
       const headerSearchEnd = Math.min(rows.length, dateHeaderRowIndex + 12);
       for (
         let rowIndex = dateHeaderRowIndex + 1;
@@ -254,11 +255,11 @@ function parseBlockAttendanceReportSheet(
           .map((item) => item.colIndex);
 
         if (inColumns.length) {
-          checkInCol = Math.min(...inColumns);
+          checkInColumns = inColumns;
           break;
         }
       }
-      if (checkInCol < 0) return;
+      if (!checkInColumns.length) return;
 
       // The device's No value is directly below the Name heading.
       const identifierRow = rows[dateHeaderRowIndex] || [];
@@ -274,7 +275,10 @@ function parseBlockAttendanceReportSheet(
         if (day === null) continue;
 
         const attendanceDate = dateForDay(period, day);
-        const checkIn = parseTime(row[checkInCol]);
+        const checkIn = checkInColumns
+          .map((colIndex) => parseTime(row[colIndex]))
+          .filter((time): time is string => Boolean(time))
+          .sort()[0];
         if (!attendanceDate || !checkIn) continue;
 
         imported.push({
