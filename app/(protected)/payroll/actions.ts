@@ -43,6 +43,34 @@ export async function createPayrollRunAction(formData: FormData) {
   redirect("/payroll/" + data + "?ok=" + encodeURIComponent("Payroll run created."));
 }
 
+export async function deleteDraftPayrollRunAction(formData: FormData) {
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
+  const runId = value(formData, "run_id");
+
+  if (formData.get("confirm_delete") !== "on") {
+    redirect(
+      "/payroll/" +
+        runId +
+        "?error=" +
+        encodeURIComponent("Confirm that you want to delete this draft payroll."),
+    );
+  }
+
+  const { error } = await supabase.rpc("delete_draft_payroll_run", {
+    p_run_id: runId,
+  });
+
+  if (error) {
+    redirect("/payroll/" + runId + "?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/payroll");
+  redirect(
+    "/payroll?ok=" +
+      encodeURIComponent("Draft payroll deleted. You can now generate a fresh run using the current payroll settings."),
+  );
+}
+
 export async function savePayrollItemAction(formData: FormData) {
   const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
   const itemId = value(formData, "item_id");
