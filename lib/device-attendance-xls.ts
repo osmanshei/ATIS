@@ -192,35 +192,56 @@ function parseBlockAttendanceReportSheet(
 
   const imported: DeviceAttendanceImportRow[] = [];
 
-  rows.forEach((headerRow, headerIndex) => {
-    const dateColumns = headerRow
-      .map((cell, colIndex) => ({ colIndex, header: normalizeHeader(cell) }))
-      .filter((item) => item.header === "date")
-      .map((item) => item.colIndex)
-      .sort((a, b) => a - b);
-
-    if (!dateColumns.length) return;
-
-    headerRow.forEach((cell, nameHeaderCol) => {
+  rows.forEach((nameHeaderRow, nameHeaderIndex) => {
+    nameHeaderRow.forEach((cell, nameHeaderCol) => {
       if (normalizeHeader(cell) !== "name") return;
 
-      const staffName = textOf(headerRow[nameHeaderCol + 1]);
+      const staffName = textOf(nameHeaderRow[nameHeaderCol + 1]);
       if (!looksLikePersonName(staffName)) return;
 
-      // Each employee block has its own Date column. The closest Date
-      // heading to the left of Name identifies this employee's block.
+      // The device prints Name and Date headings on adjacent rows.
+      // Find the nearest Date-heading row around this employee header.
+      let dateHeaderRowIndex = -1;
+      let dateColumns: number[] = [];
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      for (
+        let candidateRowIndex = Math.max(0, nameHeaderIndex - 1);
+        candidateRowIndex <= Math.min(rows.length - 1, nameHeaderIndex + 2);
+        candidateRowIndex += 1
+      ) {
+        const candidate = rows[candidateRowIndex] || [];
+        const columns = candidate
+          .map((value, colIndex) => ({ value: normalizeHeader(value), colIndex }))
+          .filter((item) => item.value === "date")
+          .map((item) => item.colIndex);
+        const preceding = columns.filter((col) => col < nameHeaderCol);
+        const distance = Math.abs(candidateRowIndex - nameHeaderIndex);
+
+        if (preceding.length && distance < bestDistance) {
+          dateHeaderRowIndex = candidateRowIndex;
+          dateColumns = columns.sort((a, b) => a - b);
+          bestDistance = distance;
+        }
+      }
+
+      if (dateHeaderRowIndex < 0) return;
+
       const dateCol = dateColumns.filter((col) => col < nameHeaderCol).at(-1);
       if (dateCol === undefined) return;
 
       const nextDateCol = dateColumns.find((col) => col > dateCol);
       const blockEnd = nextDateCol ?? Math.max(...rows.map((row) => row.length));
 
-      // Device reports place AM > In before the PM and overtime In columns.
-      // Selecting the first In column within this block therefore captures
-      // the first daily clock-in, which ATIS uses for its 07:30 early rule.
+      // The first In column in each employee block is the AM clock-in column;
+      // later In columns belong to PM and overtime sections.
       let checkInCol = -1;
-      const headerSearchEnd = Math.min(rows.length, headerIndex + 12);
-      for (let rowIndex = headerIndex + 1; rowIndex < headerSearchEnd; rowIndex += 1) {
+      const headerSearchEnd = Math.min(rows.length, dateHeaderRowIndex + 12);
+      for (
+        let rowIndex = dateHeaderRowIndex + 1;
+        rowIndex < headerSearchEnd;
+        rowIndex += 1
+      ) {
         const row = rows[rowIndex] || [];
         const inColumns = row
           .map((value, colIndex) => ({ value: normalizeHeader(value), colIndex }))
@@ -239,15 +260,15 @@ function parseBlockAttendanceReportSheet(
       }
       if (checkInCol < 0) return;
 
-      // The device includes a No field directly below the Name heading.
-      const identifierRow = rows[headerIndex + 1] || [];
+      // The device's No value is directly below the Name heading.
+      const identifierRow = rows[dateHeaderRowIndex] || [];
       const identifierLabel = normalizeHeader(identifierRow[nameHeaderCol]);
       const deviceUserId =
         ["no", "number", "id", "card", "userid"].includes(identifierLabel)
           ? textOf(identifierRow[nameHeaderCol + 1])
           : staffName;
 
-      for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex += 1) {
+      for (let rowIndex = dateHeaderRowIndex + 1; rowIndex < rows.length; rowIndex += 1) {
         const row = rows[rowIndex] || [];
         const day = parseDay(row[dateCol]);
         if (day === null) continue;
