@@ -129,6 +129,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["student", "parent"],
   },
   {
+    href: "/settings",
+    label: "School Settings",
+    short: "SE",
+    roles: ["admin"],
+  },
+  {
     href: "/account",
     label: "My Account",
     short: "AC",
