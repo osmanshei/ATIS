@@ -25,14 +25,16 @@ export default async function PayslipPage({
   ]);
   const { itemId } = await params;
 
-  const [{ data: item }, { data: school }] = await Promise.all([
+  const [{ data: item }, { data: school }, { data: settings }] = await Promise.all([
     supabase.from("payroll_item_summary").select("*").eq("id", itemId).maybeSingle(),
     supabase.from("schools").select("name,short_name,address,city,region,phone,email").limit(1).maybeSingle(),
+    supabase.from("payroll_settings").select("key,value").in("key", ["EARLY_ALLOWANCE_MIN_DAYS"]),
   ]);
 
   if (!item) notFound();
 
   const management = ["admin", "supervisor", "accountant"].includes(profile.role);
+  const earlyMinimumDays = Number((settings || []).find((row: any) => row.key === "EARLY_ALLOWANCE_MIN_DAYS")?.value ?? 15);
   if (!management && item.payroll_status !== "paid") notFound();
 
   return (
@@ -54,7 +56,7 @@ export default async function PayslipPage({
         <div><span>Payroll Month</span><strong>{new Date(item.payroll_month + "T00:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</strong></div>
         <div><span>Payroll No.</span><strong>{item.run_no}</strong></div>
         <div><span>Payment Date</span><strong>{item.pay_date || "—"}</strong></div>
-        <div><span>Early Attendance</span><strong>{item.early_days || 0} qualifying / {item.total_attendance || 0} present days (15 required)</strong></div>
+        <div><span>Early Attendance</span><strong>{item.early_days || 0} qualifying / {item.total_attendance || 0} present days ({earlyMinimumDays} required)</strong></div>
         <div><span>Service</span><strong>{item.service_years || 0} completed year(s)</strong></div>
       </div>
 
