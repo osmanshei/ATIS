@@ -51,7 +51,6 @@ export async function requireProfile(allowedRoles?: AppRole[]) {
 
   if (error || !profile || profile.status !== "active") {
     await supabase.auth.signOut();
-    cookieStore.delete(APP_SESSION_COOKIE);
     redirect("/login?error=Your+ATIS+account+is+not+active.");
   }
 
