@@ -140,8 +140,9 @@ export default async function PayrollSettingsPage({
               </select>
             </div>
             <div className="field"><label>Base override</label><input name="base_pay_override" type="number" min="0" step="0.01" /></div>
-            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked /> SSNIT (fixed employee deduction + matching employer contribution)</label>
-            <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked /> Early allowance</label>
+            <label className="compact-check"><input name="payroll_included" type="checkbox" /> Include in monthly payroll (leave unticked for administrators, supervisors or other staff who do not draw salaries)</label>
+            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" /> SSNIT (fixed employee deduction + matching employer contribution)</label>
+            <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" /> Early attendance allowance</label>
             <label className="compact-check"><input name="long_service_eligible" type="checkbox" defaultChecked /> Long service</label>
             <input type="hidden" name="notes" value="" />
             <button className="button" type="submit">Save Payroll Profile</button>
@@ -168,8 +169,9 @@ export default async function PayrollSettingsPage({
                 <label>Base pay override</label>
                 <input name="base_pay_override" type="number" min="0" step="0.01" defaultValue={row.base_pay_override ?? ""} readOnly={!canConfigure} />
               </div>
+              <label className="compact-check"><input name="payroll_included" type="checkbox" defaultChecked={row.payroll_included} disabled={!canConfigure} /> Include in payroll</label>
               <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked={row.ssnit_enabled} disabled={!canConfigure} /> SSNIT (fixed amount)</label>
-              <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked={row.early_allowance_eligible} disabled={!canConfigure} /> Early allowance</label>
+              <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked={row.early_allowance_eligible} disabled={!canConfigure} /> Early attendance allowance</label>
               <label className="compact-check"><input name="long_service_eligible" type="checkbox" defaultChecked={row.long_service_eligible} disabled={!canConfigure} /> Long service</label>
               <input type="hidden" name="notes" value={row.notes || ""} />
               {canConfigure ? <button className="button compact" type="submit">Save</button> : null}
