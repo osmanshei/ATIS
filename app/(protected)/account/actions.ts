@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";\nimport { cookies } from "next/headers";\nimport { APP_SESSION_COOKIE } from "@/lib/session";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { requireProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -90,7 +90,7 @@ export async function changePasswordAction(
 
     // End the old browser session cleanly. The user then proves the new
     // password immediately by signing in again.
-    await supabase.auth.signOut();
+    await supabase.auth.signOut();\n    const cookieStore = await cookies();\n    cookieStore.delete(APP_SESSION_COOKIE);
   } catch (error) {
     return {
       ok: false,
