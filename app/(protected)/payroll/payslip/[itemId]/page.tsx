@@ -54,7 +54,7 @@ export default async function PayslipPage({
         <div><span>Payroll Month</span><strong>{new Date(item.payroll_month + "T00:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" })}</strong></div>
         <div><span>Payroll No.</span><strong>{item.run_no}</strong></div>
         <div><span>Payment Date</span><strong>{item.pay_date || "—"}</strong></div>
-        <div><span>Early Attendance</span><strong>{item.early_days || 0} / {item.total_attendance || 0} days</strong></div>
+        <div><span>Early Attendance</span><strong>{item.early_days || 0} qualifying / {item.total_attendance || 0} present days (15 required)</strong></div>
         <div><span>Service</span><strong>{item.service_years || 0} completed year(s)</strong></div>
       </div>
 
@@ -78,6 +78,13 @@ export default async function PayslipPage({
           ))}
           {!rows(item.deduction_details).length ? <tr><td>No itemized deductions</td><td>{money(0)}</td></tr> : null}
           <tr><td><strong>Total Deductions</strong></td><td><strong>{money(item.deductions)}</strong></td></tr>
+        </tbody>
+      </table>
+
+      <table className="document-table">
+        <thead><tr><th>Employer contribution (not deducted from employee pay)</th><th>Amount</th></tr></thead>
+        <tbody>
+          <tr><td>Employer SSNIT contribution</td><td>{money(item.employer_ssnit_contribution)}</td></tr>
         </tbody>
       </table>
 
