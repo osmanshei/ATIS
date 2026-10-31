@@ -277,7 +277,6 @@ export async function savePayrollProfileAction(formData: FormData) {
       category_id: value(formData, "category_id"),
       base_pay_override: value(formData, "base_pay_override"),
       ssnit_enabled: formData.get("ssnit_enabled") === "on",
-      ssnit_rate_override: value(formData, "ssnit_rate_override"),
       early_allowance_eligible: formData.get("early_allowance_eligible") === "on",
       long_service_eligible: formData.get("long_service_eligible") === "on",
       active: true,
