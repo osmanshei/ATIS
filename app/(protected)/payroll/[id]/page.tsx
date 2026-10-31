@@ -84,6 +84,10 @@ export default async function PayrollRunPage({
         <div className="metric-card"><span className="metric-kicker">Deductions</span><strong>{money(run.deduction_total)}</strong></div>
         <div className="metric-card"><span className="metric-kicker">Net payroll</span><strong>{money(run.net_total)}</strong></div>
       </div>
+      <div className="metric-card payroll-employer-contribution">
+        <span className="metric-kicker">Employer SSNIT contribution (not deducted from staff net pay)</span>
+        <strong>{money(run.employer_ssnit_total)}</strong>
+      </div>
 
       <section className="card payroll-actions-card">
         <h2 className="section-title">Payroll approval & payment</h2>
@@ -167,7 +171,7 @@ export default async function PayrollRunPage({
                 <div className="payroll-person">
                   <strong>{item.full_name}</strong>
                   <small>{item.employee_code || "No employee code"} · {item.position_title || "Staff"}</small>
-                  <small>{item.early_days || 0} early day(s) / {item.total_attendance || 0} attendance day(s)</small>
+                  <small>Early attendance: {item.early_days || 0} qualifying day(s) out of {item.total_attendance || 0} present day(s). At least 15 days are required for the GHS 50 allowance (7:30 AM cutoff).</small>
                   <small>{item.service_years || 0} completed service year(s)</small>
                 </div>
 
@@ -189,6 +193,11 @@ export default async function PayrollRunPage({
                 <div className="field">
                   <label>SSNIT / Statutory</label>
                   <input value={Number(item.ssnit_deduction || 0).toFixed(2)} readOnly />
+                </div>
+
+                <div className="field">
+                  <label>Employer SSNIT contribution (not deducted)</label>
+                  <input value={Number(item.employer_ssnit_contribution || 0).toFixed(2)} readOnly />
                 </div>
 
                 <div className="field">
@@ -217,7 +226,7 @@ export default async function PayrollRunPage({
                 </div>
 
                 <div className="payroll-auto-breakdown">
-                  <strong>Automatic deductions</strong>
+                  <strong>Automatic deductions (employee SSNIT + loans)</strong>
                   {autoDeductions.length ? autoDeductions.map((row: any, index: number) => (
                     <small key={"ad" + index}>
                       {row.name || row.label || "Deduction"}: {money(row.amount || row.deduction)}
