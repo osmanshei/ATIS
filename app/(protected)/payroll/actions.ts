@@ -276,6 +276,7 @@ export async function savePayrollProfileAction(formData: FormData) {
       staff_id: staffId,
       category_id: value(formData, "category_id"),
       base_pay_override: value(formData, "base_pay_override"),
+      payroll_included: formData.get("payroll_included") === "on",
       ssnit_enabled: formData.get("ssnit_enabled") === "on",
       early_allowance_eligible: formData.get("early_allowance_eligible") === "on",
       long_service_eligible: formData.get("long_service_eligible") === "on",
