@@ -43,7 +43,7 @@ export default async function PayrollRunPage({
   const { id } = await params;
   const query = await searchParams;
 
-  const [{ data: run }, { data: items }, { data: voucher }] = await Promise.all([
+  const [{ data: run }, { data: items }, { data: voucher }, { data: settings }] = await Promise.all([
     supabase.from("payroll_run_summary").select("*").eq("id", id).maybeSingle(),
     supabase.from("payroll_item_summary").select("*").eq("payroll_run_id", id).order("full_name"),
     supabase
@@ -51,12 +51,15 @@ export default async function PayrollRunPage({
       .select("id,voucher_no,status,amount")
       .eq("payroll_run_id", id)
       .maybeSingle(),
+    supabase.from("payroll_settings").select("key,value").in("key", ["EARLY_ALLOWANCE_MIN_DAYS", "EARLY_ALLOWANCE_AMOUNT"]),
   ]);
 
   if (!run) notFound();
 
   const canApprove = profile.role === "admin" || profile.role === "supervisor";
   const editable = run.status === "draft";
+  const earlyMinimumDays = Number((settings || []).find((row: any) => row.key === "EARLY_ALLOWANCE_MIN_DAYS")?.value ?? 15);
+  const earlyAllowanceAmount = Number((settings || []).find((row: any) => row.key === "EARLY_ALLOWANCE_AMOUNT")?.value ?? 50);
 
   return (
     <>
@@ -171,7 +174,7 @@ export default async function PayrollRunPage({
                 <div className="payroll-person">
                   <strong>{item.full_name}</strong>
                   <small>{item.employee_code || "No employee code"} · {item.position_title || "Staff"}</small>
-                  <small>Early attendance: {item.early_days || 0} qualifying day(s) out of {item.total_attendance || 0} present day(s). At least 15 days are required for the GHS 50 allowance (7:30 AM cutoff).</small>
+                  <small>Early attendance: {item.early_days || 0} qualifying day(s) out of {item.total_attendance || 0} present day(s). At least {earlyMinimumDays} days are required for the {money(earlyAllowanceAmount)} allowance (7:30 AM cutoff).</small>
                   <small>{item.service_years || 0} completed service year(s)</small>
                 </div>
 
