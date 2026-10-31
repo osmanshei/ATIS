@@ -41,6 +41,13 @@ export default async function PayrollSettingsPage({
 
   const staffMap = new Map((staff || []).map((s: any) => [s.id, s]));
   const typeMap = new Map((allowanceTypes || []).map((a: any) => [a.id, a]));
+  const visibleSettings = (settings || []).filter((row: any) => row.key !== "EMPLOYEE_SSNIT_RATE");
+  const settingLabels: Record<string, string> = {
+    SSNIT_FIXED_AMOUNT: "Monthly SSNIT amount (GHS)",
+    EARLY_ALLOWANCE_MIN_DAYS: "Minimum early-attendance days",
+    EARLY_ALLOWANCE_AMOUNT: "Early-attendance allowance (GHS)",
+    RETENTION_BONUS_PER_YEAR: "Long-service allowance per completed year (GHS)",
+  };
 
   return (
     <>
@@ -57,15 +64,15 @@ export default async function PayrollSettingsPage({
 
       <section className="panel-section">
         <div className="section-heading">
-          <div><div className="eyebrow">Automatic rules</div><h2>Payroll settings</h2></div>
+          <div><div className="eyebrow">Automatic rules</div><h2>Payroll settings</h2><p className="muted">SSNIT is a fixed monthly amount, not a percentage of basic salary. The employer contribution matches the employee deduction.</p></div>
         </div>
         <div className="payroll-settings-grid">
-          {(settings || []).map((row: any) => (
+          {visibleSettings.map((row: any) => (
             <form className="card payroll-setting-card" action={savePayrollSettingAction} key={row.key}>
               <input type="hidden" name="key" value={row.key} />
               <input type="hidden" name="description" value={row.description || ""} />
-              <strong>{row.key.replaceAll("_"," ")}</strong>
-              <p>{row.description || "Payroll setting"}</p>
+              <strong>{settingLabels[row.key] || row.key.replaceAll("_"," ")}</strong>
+              <p>{row.description || "Payroll setting"}{row.key === "SSNIT_FIXED_AMOUNT" ? " This same fixed amount is recorded as the employee deduction and employer contribution; the employer share is not deducted from net pay." : ""}</p>
               <div className="field">
                 <label>Value</label>
                 <input name="setting_value" type="number" min="0" step="0.01" defaultValue={row.value} readOnly={!canConfigure} />
@@ -133,8 +140,7 @@ export default async function PayrollSettingsPage({
               </select>
             </div>
             <div className="field"><label>Base override</label><input name="base_pay_override" type="number" min="0" step="0.01" /></div>
-            <div className="field"><label>SSNIT override %</label><input name="ssnit_rate_override" type="number" min="0" max="100" step="0.001" /></div>
-            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked /> SSNIT</label>
+            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked /> SSNIT (GHS 80 employee deduction + GHS 80 employer contribution)</label>
             <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked /> Early allowance</label>
             <label className="compact-check"><input name="long_service_eligible" type="checkbox" defaultChecked /> Long service</label>
             <input type="hidden" name="notes" value="" />
@@ -162,11 +168,7 @@ export default async function PayrollSettingsPage({
                 <label>Base pay override</label>
                 <input name="base_pay_override" type="number" min="0" step="0.01" defaultValue={row.base_pay_override ?? ""} readOnly={!canConfigure} />
               </div>
-              <div className="field">
-                <label>SSNIT rate override %</label>
-                <input name="ssnit_rate_override" type="number" min="0" max="100" step="0.001" defaultValue={row.ssnit_rate_override ?? ""} readOnly={!canConfigure} />
-              </div>
-              <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked={row.ssnit_enabled} disabled={!canConfigure} /> SSNIT</label>
+              <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked={row.ssnit_enabled} disabled={!canConfigure} /> SSNIT (fixed amount)</label>
               <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked={row.early_allowance_eligible} disabled={!canConfigure} /> Early allowance</label>
               <label className="compact-check"><input name="long_service_eligible" type="checkbox" defaultChecked={row.long_service_eligible} disabled={!canConfigure} /> Long service</label>
               <input type="hidden" name="notes" value={row.notes || ""} />
