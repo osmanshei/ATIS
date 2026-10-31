@@ -140,7 +140,7 @@ export default async function PayrollSettingsPage({
               </select>
             </div>
             <div className="field"><label>Base override</label><input name="base_pay_override" type="number" min="0" step="0.01" /></div>
-            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked /> SSNIT (GHS 80 employee deduction + GHS 80 employer contribution)</label>
+            <label className="compact-check"><input name="ssnit_enabled" type="checkbox" defaultChecked /> SSNIT (fixed employee deduction + matching employer contribution)</label>
             <label className="compact-check"><input name="early_allowance_eligible" type="checkbox" defaultChecked /> Early allowance</label>
             <label className="compact-check"><input name="long_service_eligible" type="checkbox" defaultChecked /> Long service</label>
             <input type="hidden" name="notes" value="" />
