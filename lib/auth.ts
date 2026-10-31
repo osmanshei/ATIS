@@ -32,14 +32,12 @@ export async function requireProfile(allowedRoles?: AppRole[]) {
 
   if (!isAppSessionValid(sessionStartedAt)) {
     await supabase.auth.signOut();
-    cookieStore.delete(APP_SESSION_COOKIE);
     redirect("/login?message=Your+session+has+expired.+Please+sign+in+again.");
   }
 
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userData.user) {
-    cookieStore.delete(APP_SESSION_COOKIE);
     redirect("/login");
   }
 
