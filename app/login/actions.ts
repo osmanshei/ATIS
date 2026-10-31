@@ -1,8 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { APP_SESSION_COOKIE, APP_SESSION_DURATION_SECONDS } from "@/lib/session";
 
 export async function loginAction(formData: FormData) {
   const identifier = String(formData.get("identifier") || "").trim();
@@ -41,6 +43,15 @@ export async function loginAction(formData: FormData) {
   if (error || !data.user) {
     redirect("/login?error=Invalid+login+details.");
   }
+
+  const cookieStore = await cookies();
+  cookieStore.set(APP_SESSION_COOKIE, String(Date.now()), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: APP_SESSION_DURATION_SECONDS,
+  });
 
   try {
     const admin = adminForAudit || createAdminClient();
