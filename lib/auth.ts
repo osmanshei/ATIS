@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { APP_SESSION_COOKIE, isAppSessionValid } from "@/lib/session";
 
 export type AppRole =
   | "admin"
@@ -24,10 +26,20 @@ export type CurrentProfile = {
 };
 
 export async function requireProfile(allowedRoles?: AppRole[]) {
+  const cookieStore = await cookies();
+  const sessionStartedAt = cookieStore.get(APP_SESSION_COOKIE)?.value;
   const supabase = await createClient();
+
+  if (!isAppSessionValid(sessionStartedAt)) {
+    await supabase.auth.signOut();
+    cookieStore.delete(APP_SESSION_COOKIE);
+    redirect("/login?message=Your+session+has+expired.+Please+sign+in+again.");
+  }
+
   const { data: userData, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userData.user) {
+    cookieStore.delete(APP_SESSION_COOKIE);
     redirect("/login");
   }
 
@@ -41,6 +53,7 @@ export async function requireProfile(allowedRoles?: AppRole[]) {
 
   if (error || !profile || profile.status !== "active") {
     await supabase.auth.signOut();
+    cookieStore.delete(APP_SESSION_COOKIE);
     redirect("/login?error=Your+ATIS+account+is+not+active.");
   }
 
