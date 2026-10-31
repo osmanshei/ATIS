@@ -39,13 +39,13 @@ function NavIcon({ code }: { code: string }) {
     FD: <svg {...common}><path d="M5 3v7c0 2 1.5 3 3 3V3M8 13v8M14 3v18M14 3c4 1 5 4 5 7s-1 5-5 6"/></svg>,
     PA: <svg {...common}><circle cx="8" cy="8" r="2.5"/><circle cx="16.5" cy="9" r="2"/><path d="M3 19c.5-3.6 2.2-5.4 5-5.4s4.5 1.8 5 5.4"/><path d="M14 14.5c3 .2 4.7 1.7 5.2 4.5"/></svg>,
     PO: <svg {...common}><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><circle cx="12" cy="13" r="2.2"/><path d="M8.5 20c.4-2.6 1.6-4 3.5-4s3.1 1.4 3.5 4"/></svg>,
-    AC: <svg {...common}><circle cx="12" cy="8" r="3"/><path d="M5 21c.8-4.5 3.1-6.5 7-6.5s6.2 2 7 6.5"/></svg>,
+    AC: <svg {...common}><circle cx="12" cy="8" r="3"/><path d="M5 21c.8-4.5 3.1-6.5 7-6.5s6.2 2 7 6.5"/></svg>,\n    SE: <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-1.7 2.9-.2-.1a1.7 1.7 0 0 0-1.8.1l-.2.1h-3.4l-.1-.2a1.7 1.7 0 0 0-1.5-1.1h-.2l-1.7-2.9.1-.2a1.7 1.7 0 0 0-.1-1.8l-.1-.2v-3.4l.2-.1a1.7 1.7 0 0 0 1.1-1.5v-.2l2.9-1.7.2.1a1.7 1.7 0 0 0 1.8-.1l.2-.1h3.4l.1.2a1.7 1.7 0 0 0 1.5 1.1h.2l1.7 2.9-.1.2a1.7 1.7 0 0 0 .1 1.8l.1.2v3.4z"/></svg>,
   };
 
   return <>{icons[code] || <span>{code}</span>}</>;
 }
 
-export function Sidebar({ profile }: { profile: CurrentProfile }) {
+export function Sidebar({ profile, schoolLogoUrl }: { profile: CurrentProfile; schoolLogoUrl?: string | null }) {
   const pathname = usePathname();
   const items = navigationForRole(profile.role);
 
@@ -53,7 +53,7 @@ export function Sidebar({ profile }: { profile: CurrentProfile }) {
     <aside className="sidebar">
       <div className="brand-row">
         <div className="brand-mark">
-          <Image src="/atis-logo.svg" alt="ATIS" width={44} height={44} priority />
+          <Image src={schoolLogoUrl || "/atis-logo.svg"} alt="ATIS" width={44} height={44} priority unoptimized />
         </div>
         <div className="brand-copy">
           <strong>ATIS</strong>
