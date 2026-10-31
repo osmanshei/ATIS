@@ -120,7 +120,7 @@ export default async function PayrollPage({
         <table>
           <thead>
             <tr>
-              <th>Month</th><th>Run No.</th><th>Staff</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Status</th><th></th>
+              <th>Month</th><th>Run No.</th><th>Staff</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Employer SSNIT</th><th>Status</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -132,12 +132,13 @@ export default async function PayrollPage({
                 <td>{money(row.gross_total)}</td>
                 <td>{money(row.deduction_total)}</td>
                 <td><strong>{money(row.net_total)}</strong></td>
+                <td>{money(row.employer_ssnit_total)}</td>
                 <td><span className="tag">{row.status}</span></td>
                 <td><Link className="button secondary compact" href={"/payroll/" + row.id}>Open</Link></td>
               </tr>
             ))}
             {!runs?.length ? (
-              <tr><td colSpan={8} className="muted">No payroll runs have been created yet.</td></tr>
+              <tr><td colSpan={9} className="muted">No payroll runs have been created yet.</td></tr>
             ) : null}
           </tbody>
         </table>
