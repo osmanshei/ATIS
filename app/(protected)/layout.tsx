@@ -5,7 +5,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   const { supabase, profile } = await requireProfile();
   const { data: school } = await supabase
     .from("schools")
-    .select("name,short_name")
+    .select("name,short_name,logo_url")
     .eq("id", profile.school_id)
     .single();
 
@@ -18,7 +18,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="shell">
-      <Sidebar profile={profile} />
+      <Sidebar profile={profile} schoolLogoUrl={school?.logo_url} />
       <div className="main">
         <header className="topbar">
           <div className="topbar-school">
