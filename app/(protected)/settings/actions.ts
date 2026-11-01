@@ -12,7 +12,36 @@ export async function saveSchoolProfileAction(formData: FormData) {
   const { profile } = await requireProfile(["admin"]);
   const admin = createAdminClient();
 
-  const payload = {
+  const logoFile = formData.get("logo_file");
+  let uploadedLogoUrl: string | null = null;
+
+  if (logoFile instanceof File && logoFile.size > 0) {
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowedTypes.has(logoFile.type)) {
+      redirect("/settings?error=" + encodeURIComponent("School logo must be a JPG, PNG or WebP image."));
+    }
+    if (logoFile.size > 2 * 1024 * 1024) {
+      redirect("/settings?error=" + encodeURIComponent("School logo must not exceed 2 MB."));
+    }
+
+    const logoPath = profile.school_id + "/logo";
+    const { error: uploadError } = await admin.storage
+      .from("school-logos")
+      .upload(logoPath, new Uint8Array(await logoFile.arrayBuffer()), {
+        contentType: logoFile.type,
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      redirect("/settings?error=" + encodeURIComponent("Could not upload school logo: " + uploadError.message));
+    }
+
+    const { data: publicLogo } = admin.storage.from("school-logos").getPublicUrl(logoPath);
+    uploadedLogoUrl = publicLogo.publicUrl;
+  }
+
+  const payload: Record<string, unknown> = {
     name: value(formData, "name"),
     short_name: value(formData, "short_name") || "ATIS",
     address: value(formData, "address") || null,
@@ -22,11 +51,13 @@ export async function saveSchoolProfileAction(formData: FormData) {
     phone: value(formData, "phone") || null,
     email: value(formData, "email") || null,
     website: value(formData, "website") || null,
-    logo_url: value(formData, "logo_url") || null,
     timezone: value(formData, "timezone") || "Africa/Accra",
     currency_code: value(formData, "currency_code") || "GHS",
     updated_at: new Date().toISOString(),
   };
+
+  // Keep the current logo when no replacement file is selected.
+  if (uploadedLogoUrl) payload.logo_url = uploadedLogoUrl;
 
   if (!payload.name) {
     redirect("/settings?error=School+name+is+required.");
