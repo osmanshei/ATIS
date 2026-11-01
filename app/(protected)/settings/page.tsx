@@ -52,10 +52,10 @@ export default async function SchoolSettingsPage({
         <div className="section-heading">
           <div><div className="eyebrow">School identity</div><h2>School profile</h2><p className="muted">These details identify ATIS across school records and printed documents.</p></div>
         </div>
-        <form className="card settings-form" action={saveSchoolProfileAction}>
+        <form className="card settings-form" action={saveSchoolProfileAction} encType="multipart/form-data">
           <div className="settings-logo-preview">
             <Image src={school?.logo_url || "/atis-logo.svg"} alt="School logo preview" width={76} height={76} unoptimized />
-            <div><strong>School logo</strong><p className="muted">Paste the public image URL below. Leave the field blank to use the built-in ATIS logo.</p></div>
+            <div><strong>School logo</strong><p className="muted">Choose a JPG, PNG or WebP image (maximum 2 MB). Selecting a new file replaces the current logo.</p></div>
           </div>
           <div className="grid-2">
             <div className="field"><label>Official school name</label><input name="name" defaultValue={school?.name || ""} required /></div>
@@ -67,7 +67,7 @@ export default async function SchoolSettingsPage({
             <div className="field"><label>Region</label><input name="region" defaultValue={school?.region || "Northern Region"} /></div>
             <div className="field"><label>Country</label><input name="country" defaultValue={school?.country || "Ghana"} /></div>
             <div className="field"><label>Website</label><input name="website" type="url" defaultValue={school?.website || ""} placeholder="https://" /></div>
-            <div className="field"><label>Logo image URL</label><input name="logo_url" type="url" defaultValue={school?.logo_url || ""} placeholder="https://..." /></div>
+            <div className="field"><label>Upload school logo</label><input name="logo_file" type="file" accept="image/jpeg,image/png,image/webp" /><small className="muted">Leave this empty to keep the current logo.</small></div>
             <div className="field"><label>Time zone</label><input name="timezone" defaultValue={school?.timezone || "Africa/Accra"} required /></div>
             <div className="field"><label>Currency code</label><input name="currency_code" defaultValue={school?.currency_code || "GHS"} maxLength={3} required /></div>
           </div>
