@@ -3030,3 +3030,98 @@ tbody tr:hover { background: #fbfdfb; }
   .colour-section-card { box-shadow:none; }
 }
 
+/* Print refinements for school-wide colour-section registers */
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+.section-register {
+  width: 100%;
+  max-width: none;
+}
+.section-register .document-header {
+  border-bottom: 2px solid var(--section-accent);
+  padding-bottom: 4mm;
+  margin-bottom: 5mm;
+}
+.section-register .document-header h2 {
+  margin-top: 4mm;
+}
+.section-register .document-meta-grid {
+  gap: 3mm;
+  margin-bottom: 5mm;
+}
+.section-register .document-meta-grid > div {
+  min-width: 0;
+  padding: 2.5mm;
+}
+.section-register .section-register-table {
+  margin: 0;
+  border-collapse: collapse;
+}
+.section-register .section-register-table th {
+  border-top: 2px solid var(--section-accent);
+  background: #edf1ee;
+  color: #17211b;
+  font-weight: 750;
+}
+.section-register .section-register-table th,
+.section-register .section-register-table td {
+  padding: 2mm 1.5mm;
+  line-height: 1.25;
+  vertical-align: middle;
+}
+.section-register .section-register-table td:first-child,
+.section-register .section-register-table th:first-child,
+.section-register .section-register-table td:nth-child(4),
+.section-register .section-register-table th:nth-child(4) {
+  text-align: center;
+}
+.section-register .section-register-table td:last-child,
+.section-register .section-register-table th:last-child {
+  text-align: left;
+}
+.section-register-signatures {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  gap: 8mm;
+  margin-top: 12mm;
+}
+.section-register .document-footer {
+  margin-top: 8mm;
+}
+@media print {
+  html, body {
+    background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .section-register {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .section-register .document-header,
+  .section-register .document-meta-grid,
+  .section-register .section-register-table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+  .section-register .section-register-table thead {
+    display: table-header-group;
+  }
+  .section-register .section-register-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .section-register .section-register-table th,
+  .section-register .section-register-table td {
+    font-size: 8pt;
+    overflow-wrap: anywhere;
+  }
+  .section-register .section-register-table th {
+    background: #edf1ee !important;
+    color: #17211b !important;
+  }
+}
