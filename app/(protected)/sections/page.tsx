@@ -21,7 +21,7 @@ export default async function SectionsPage({
   const [{ data: sectionRows, error }, { data: teachers }] = await Promise.all([
     supabase
       .from("school_sections")
-      .select("id,section_name,section_master_id")
+      .select("id,section_name,section_master_id,assistant_section_master_id")
       .eq("school_id", profile.school_id)
       .order("section_name"),
     supabase
@@ -84,6 +84,7 @@ export default async function SectionsPage({
                 <div className="section-count">{countBySection.get(sectionName) || 0}<small>active students</small></div>
               </div>
               <p><strong>Section Master:</strong> {master?.full_name || "Not assigned"}</p>
+              <p><strong>Assistant:</strong> {row?.assistant_section_master_id ? teacherById.get(row.assistant_section_master_id)?.full_name || "Not assigned" : "Not assigned"}</p>
               <p className="muted">{master?.employee_code || (master ? "Teacher" : "Assign a teacher to lead this section.")}</p>
               <div className="action-row no-print">
                 <Link className="button secondary" href={"/sections/" + sectionName.toLowerCase()}>View / Print Register</Link>
