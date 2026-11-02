@@ -34,7 +34,7 @@ export default async function ColourSectionRegisterPage({
   const [{ data: section }, { data: students, error: studentsError }, { data: teachers }, { data: school }] = await Promise.all([
     supabase
       .from("school_sections")
-      .select("id,section_name,section_master_id")
+      .select("id,section_name,section_master_id,assistant_section_master_id")
       .eq("school_id", profile.school_id)
       .eq("section_name", sectionName)
       .maybeSingle(),
@@ -62,6 +62,7 @@ export default async function ColourSectionRegisterPage({
   const studentRows = (students || []) as any[];
   const teacherRows = (teachers || []) as any[];
   const currentMaster = teacherRows.find((teacher) => teacher.id === section.section_master_id);
+  const currentAssistant = teacherRows.find((teacher) => teacher.id === section.assistant_section_master_id);
   const canAssign = profile.role === "admin";
 
   return (
@@ -98,8 +99,23 @@ export default async function ColourSectionRegisterPage({
               </select>
             </div>
             <div className="field">
+              <label htmlFor="assistant_teacher_id">Assistant Section Master</label>
+              <select id="assistant_teacher_id" name="assistant_teacher_id" defaultValue={section.assistant_section_master_id || ""}>
+                <option value="">Not assigned</option>
+                {teacherRows.filter((teacher) => teacher.id !== section.section_master_id).map((teacher) => (
+                  <option key={teacher.id} value={teacher.id}>
+                    {teacher.full_name}{teacher.employee_code ? " · " + teacher.employee_code : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
               <label>Current Section Master</label>
-              <input value={currentMaster?.full_name || "No section master assigned"} readOnly />
+              <input value={currentMaster?.full_name || "Not assigned"} readOnly />
+            </div>
+            <div className="field">
+              <label>Current Assistant</label>
+              <input value={currentAssistant?.full_name || "Not assigned"} readOnly />
             </div>
             <div className="field">
               <label>Students in section</label>
@@ -109,7 +125,7 @@ export default async function ColourSectionRegisterPage({
           <button className="button" type="submit">Save {sectionName} Section Master</button>
         </form>
       ) : (
-        <div className="notice no-print">Section Master: {currentMaster?.full_name || "Not assigned"}</div>
+        <div className="notice no-print">Section Master: {currentMaster?.full_name || "Not assigned"} · Assistant: {currentAssistant?.full_name || "Not assigned"}</div>
       )}
 
       <section className={"print-document section-register " + sectionClass[sectionName]}>
@@ -124,6 +140,7 @@ export default async function ColourSectionRegisterPage({
         <div className="document-meta-grid">
           <div><span>Section</span><strong>{sectionName}</strong></div>
           <div><span>Section Master</span><strong>{currentMaster?.full_name || "Not assigned"}</strong></div>
+          <div><span>Assistant Master</span><strong>{currentAssistant?.full_name || "Not assigned"}</strong></div>
           <div><span>Total Students</span><strong>{studentRows.length}</strong></div>
         </div>
 
@@ -147,9 +164,9 @@ export default async function ColourSectionRegisterPage({
         </table>
 
         <div className="signature-grid section-register-signatures">
-          <div><div className="signature-line" /><span>Section Master</span></div>
+          <div><div className="signature-line" /><span>Section Master</span><strong>{currentMaster?.full_name || ""}</strong></div>
+          <div><div className="signature-line" /><span>Assistant Section Master</span><strong>{currentAssistant?.full_name || ""}</strong></div>
           <div><div className="signature-line" /><span>Headteacher / Supervisor</span></div>
-          <div><div className="signature-line" /><span>Date</span></div>
         </div>
         <p className="document-footer">Generated from the ATIS school management system.</p>
       </section>
