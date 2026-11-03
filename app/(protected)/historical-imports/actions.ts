@@ -69,7 +69,7 @@ async function readImportRecords(
   if (extension === "xlsx") {
     let rows: unknown[][];
     try {
-      rows = (await readSheet(bytes, { sheet: expectedSheet })) as unknown[][];
+      rows = (await readSheet(bytes, expectedSheet)) as unknown[][];
     } catch {
       rows = (await readSheet(bytes)) as unknown[][];
     }
