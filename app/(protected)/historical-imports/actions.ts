@@ -104,7 +104,7 @@ export async function previewHistoricalImportAction(
     return failedPreview(importType, "Choose a valid import type.");
   }
 
-  await requireProfile(["admin"]);
+  const { supabase } = await requireProfile(["admin"]);
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -142,11 +142,11 @@ export async function previewHistoricalImportAction(
 
   const [{ data: classes, error: classError }, { data: students, error: studentError }] =
     await Promise.all([
-      (await requireProfile(["admin"])).supabase
+      supabase
         .from("classes")
         .select("id,class_name,section,class_code")
         .eq("is_active", true),
-      (await requireProfile(["admin"])).supabase
+      supabase
         .from("students")
         .select("id,first_name,middle_name,last_name,class_id"),
     ]);
@@ -299,7 +299,7 @@ export async function commitHistoricalImportAction(
   }
 
   const seen = new Set<string>();
-  const payload = [];
+  const payload: { student_id: string; class_id: string; value: number }[] = [];
 
   for (const row of matched) {
     if (!row.studentId || !row.classId || row.value === null || !Number.isFinite(row.value) || row.value < 0) {
