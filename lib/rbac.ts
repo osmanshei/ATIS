@@ -129,6 +129,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ["student", "parent"],
   },
   {
+    href: "/historical-imports",
+    label: "Historical Data Import",
+    short: "HI",
+    roles: ["admin"],
+  },
+  {
     href: "/settings",
     label: "School Settings",
     short: "SE",
