@@ -43,6 +43,28 @@ export default async function BalancesPage({
 
   const { data: rows } = await query;
 
+  let arrearsQuery = supabase
+    .from("student_fee_arrears")
+    .select("student_id,class_id,arrears_amount,updated_at")
+    .gt("arrears_amount", 0)
+    .order("updated_at", { ascending: false });
+
+  if (classId) arrearsQuery = arrearsQuery.eq("class_id", classId);
+
+  const { data: arrearsRows } = await arrearsQuery;
+  const arrearsStudentIds = Array.from(
+    new Set((arrearsRows || []).map((r: any) => r.student_id)),
+  );
+  const { data: arrearsStudents } = arrearsStudentIds.length
+    ? await supabase
+        .from("students")
+        .select("id,admission_number,first_name,middle_name,last_name")
+        .in("id", arrearsStudentIds)
+    : { data: [] as any[] };
+
+  const arrearsStudentMap = new Map((arrearsStudents || []).map((s: any) => [s.id, s]));
+  const classMap = new Map((classes || []).map((c: any) => [c.id, c]));
+
   const outstanding = (rows || []).reduce(
     (sum: number, r: any) => sum + Number(r.outstanding_balance || 0),
     0,
@@ -50,6 +72,11 @@ export default async function BalancesPage({
   const paid = (rows || []).reduce((sum: number, r: any) => sum + Number(r.amount_paid || 0), 0);
   const netFees = (rows || []).reduce((sum: number, r: any) => sum + Number(r.net_fees || 0), 0);
   const debtors = (rows || []).filter((r: any) => Number(r.outstanding_balance || 0) > 0).length;
+  const arrearsTotal = (arrearsRows || []).reduce(
+    (sum: number, r: any) => sum + Number(r.arrears_amount || 0),
+    0,
+  );
+  const combinedOutstanding = outstanding + arrearsTotal;
 
   return (
     <>
@@ -93,9 +120,19 @@ export default async function BalancesPage({
           <small>Total valid payments posted</small>
         </div>
         <div className="metric-card">
-          <span className="metric-kicker">Outstanding</span>
+          <span className="metric-kicker">Current-term outstanding</span>
           <strong>{money(outstanding)}</strong>
           <small>{debtors} students with balances</small>
+        </div>
+        <div className="metric-card">
+          <span className="metric-kicker">Previous arrears</span>
+          <strong>{money(arrearsTotal)}</strong>
+          <small>{arrearsRows?.length || 0} imported opening balances</small>
+        </div>
+        <div className="metric-card">
+          <span className="metric-kicker">Combined outstanding</span>
+          <strong>{money(combinedOutstanding)}</strong>
+          <small>Current term plus previous arrears</small>
         </div>
       </div>
 
@@ -135,6 +172,48 @@ export default async function BalancesPage({
           </tbody>
         </table>
       </div>
+
+      <section className="panel-section">
+        <div className="section-heading">
+          <div>
+            <div className="eyebrow">Opening balances</div>
+            <h2>Previous fee arrears</h2>
+            <p className="muted">
+              Imported balances from earlier terms. They remain separate from current-term charges; payments posted against current-term fees do not automatically reduce these arrears.
+            </p>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Student</th><th>Class at import</th><th>Arrears</th><th>Last updated</th></tr>
+            </thead>
+            <tbody>
+              {(arrearsRows || []).map((r: any) => {
+                const student = arrearsStudentMap.get(r.student_id) as any;
+                const cls = classMap.get(r.class_id) as any;
+                const name = student
+                  ? [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ")
+                  : "Student record unavailable";
+                return (
+                  <tr key={r.student_id}>
+                    <td>
+                      <strong>{name}</strong><br />
+                      <span className="muted">{student?.admission_number || ""}</span>
+                    </td>
+                    <td>{cls?.class_name || "—"}{cls?.section ? " / " + cls.section : ""}</td>
+                    <td><strong className="finance-due">{money(r.arrears_amount)}</strong></td>
+                    <td>{r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-GH") : "—"}</td>
+                  </tr>
+                );
+              })}
+              {!arrearsRows?.length ? (
+                <tr><td colSpan={4} className="muted">No historical arrears have been imported yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
