@@ -191,7 +191,7 @@ export async function previewHistoricalImportAction(
   }
 
   const seenStudentIds = new Set<string>();
-  const rows: HistoricalImportRow[] = records.map((record, index) => {
+  const rows = records.map((record, index): HistoricalImportRow => {
     const name = field(record, "Name", "Student Name", "Full Name");
     const className = field(record, "Class", "Class Name");
     const rawValue =
