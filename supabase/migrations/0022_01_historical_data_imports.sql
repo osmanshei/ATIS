@@ -142,11 +142,11 @@ begin
     raise exception 'Only an administrator can import historical records';
   end if;
 
-  if p_import_type not in ('fee_arrears','attendance_totals') then
+  if p_import_type is null or p_import_type not in ('fee_arrears','attendance_totals') then
     raise exception 'Choose a valid historical import type';
   end if;
 
-  if jsonb_typeof(p_rows) <> 'array' then
+  if p_rows is null or jsonb_typeof(p_rows) <> 'array' then
     raise exception 'Import rows must be an array';
   end if;
 
