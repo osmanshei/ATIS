@@ -18,7 +18,8 @@
     "next": "^16.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
-    "xls-reader": "^0.7.0"
+    "xls-reader": "^0.7.0",
+    "read-excel-file": "^9.3.10"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

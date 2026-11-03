@@ -27,14 +27,41 @@ export default async function AttendanceReportsPage({
 
   if (params.class) query = query.eq("class_id", params.class);
 
-  const [{ data: rows }, { data: classes }] = await Promise.all([
+  let historicalQuery = supabase
+    .from("student_historical_attendance_totals")
+    .select("student_id,class_id,total_attendance,updated_at")
+    .order("class_id");
+
+  if (params.class) historicalQuery = historicalQuery.eq("class_id", params.class);
+
+  const [{ data: rows }, { data: classes }, { data: historicalRows }] = await Promise.all([
     query,
     supabase
       .from("class_summary")
       .select("id,class_name,section,is_active")
       .eq("is_active", true)
       .order("class_name"),
+    historicalQuery,
   ]);
+
+  const historicalStudentIds = Array.from(
+    new Set((historicalRows || []).map((r: any) => r.student_id)),
+  );
+  const { data: historicalStudents } = historicalStudentIds.length
+    ? await supabase
+        .from("students")
+        .select("id,admission_number,first_name,middle_name,last_name")
+        .in("id", historicalStudentIds)
+    : { data: [] as any[] };
+
+  const historicalStudentMap = new Map(
+    (historicalStudents || []).map((s: any) => [s.id, s]),
+  );
+  const historicalClassMap = new Map((classes || []).map((c: any) => [c.id, c]));
+  const historicalAttendanceTotal = (historicalRows || []).reduce(
+    (sum: number, r: any) => sum + Number(r.total_attendance || 0),
+    0,
+  );
 
   const total = (rows || []).reduce((a: number, r: any) => a + Number(r.total_count || 0), 0);
   const present = (rows || []).reduce(
@@ -132,6 +159,60 @@ export default async function AttendanceReportsPage({
           </tbody>
         </table>
       </div>
+
+      <section className="panel-section">
+        <div className="section-heading">
+          <div>
+            <div className="eyebrow">Imported baseline</div>
+            <h2>Historical attendance totals</h2>
+            <p className="muted">
+              Aggregate attendance recorded before ATIS daily registers. These totals are kept separate from dated registers and are not included in the selected date-range attendance percentage.
+            </p>
+          </div>
+        </div>
+
+        <div className="teacher-summary-grid">
+          <div className="metric-card">
+            <span className="metric-kicker">Students with historical totals</span>
+            <strong>{historicalRows?.length || 0}</strong>
+            <small>Imported student records</small>
+          </div>
+          <div className="metric-card">
+            <span className="metric-kicker">Historical attendance total</span>
+            <strong>{historicalAttendanceTotal.toLocaleString()}</strong>
+            <small>Aggregate days attended</small>
+          </div>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Student</th><th>Admission No.</th><th>Class at import</th><th>Total attendance</th><th>Last updated</th></tr>
+            </thead>
+            <tbody>
+              {(historicalRows || []).map((r: any) => {
+                const student = historicalStudentMap.get(r.student_id) as any;
+                const cls = historicalClassMap.get(r.class_id) as any;
+                const name = student
+                  ? [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ")
+                  : "Student record unavailable";
+                return (
+                  <tr key={r.student_id}>
+                    <td><strong>{name}</strong></td>
+                    <td>{student?.admission_number || "—"}</td>
+                    <td>{cls?.class_name || "—"}{cls?.section ? " / " + cls.section : ""}</td>
+                    <td><strong>{Number(r.total_attendance || 0).toLocaleString()}</strong></td>
+                    <td>{r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-GH") : "—"}</td>
+                  </tr>
+                );
+              })}
+              {!historicalRows?.length ? (
+                <tr><td colSpan={5} className="muted">No historical attendance totals have been imported yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
