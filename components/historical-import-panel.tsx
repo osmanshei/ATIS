@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   commitHistoricalImportAction,
@@ -34,6 +34,7 @@ export function HistoricalImportPanel({
   templateHref,
 }: Props) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<HistoricalImportPreview | null>(null);
   const [busy, setBusy] = useState<"preview" | "import" | null>(null);
@@ -81,6 +82,7 @@ export function HistoricalImportPanel({
         setNotice({ kind: "success", text: result.message });
         setPreview(null);
         setFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
         router.refresh();
       } else {
         setNotice({ kind: "error", text: result.message });
@@ -108,6 +110,7 @@ export function HistoricalImportPanel({
         <div className="field">
           <label>CSV or Excel file</label>
           <input
+            ref={fileInputRef}
             name="file"
             type="file"
             accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
