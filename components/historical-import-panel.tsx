@@ -154,7 +154,7 @@ export function HistoricalImportPanel({
             </div>
           </div>
 
-          <div className="table-wrap">
+          <div className="table-wrap" style={{ maxHeight: 420, overflowY: "auto" }}>
             <table>
               <thead>
                 <tr>
@@ -167,7 +167,7 @@ export function HistoricalImportPanel({
                 </tr>
               </thead>
               <tbody>
-                {preview.rows.slice(0, 40).map((row) => (
+                {preview.rows.map((row) => (
                   <tr key={row.rowNumber}>
                     <td>{row.rowNumber}</td>
                     <td><strong>{row.name || "—"}</strong></td>
@@ -184,10 +184,6 @@ export function HistoricalImportPanel({
               </tbody>
             </table>
           </div>
-
-          {preview.rows.length > 40 ? (
-            <p className="muted">Showing the first 40 of {preview.rows.length} rows. All matched rows are included in the import.</p>
-          ) : null}
 
           <p className="muted">
             Only matched rows will be saved. If you import the same student again, the new value replaces the previously imported value; it is not added to it.
