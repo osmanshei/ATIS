@@ -118,6 +118,7 @@ export default async function PaymentsPage({
 
   const balance = balanceResult.data as any;
   const historicalArrears = arrearsResult.data as any;
+  const arrearsLoadError = arrearsResult.error;
   const applicableItems = selectedStudent
     ? (feeItemsResult.data || []).filter(
         (f: any) => f.applies_to_all_students || f.class_id === selectedStudent.class_id,
@@ -138,6 +139,11 @@ export default async function PaymentsPage({
       </div>
 
       {params.error ? <div className="notice error">{params.error}</div> : null}
+      {selectedStudent && arrearsLoadError ? (
+        <div className="notice error">
+          Historical arrears could not be loaded. Apply database migration 0023 in Supabase before posting this payment. Payment posting is disabled until the balance can be verified.
+        </div>
+      ) : null}
 
       <div className="grid-2">
         <section className="form-card">
@@ -290,7 +296,7 @@ export default async function PaymentsPage({
               <label>Remarks</label>
               <textarea name="remarks" rows={2} />
             </div>
-            <button className="button" type="submit">Post Payment & Generate Receipt</button>
+            <button className="button" type="submit" disabled={Boolean(arrearsLoadError)}>Post Payment & Generate Receipt</button>
           </form>
         ) : (
           <section className="card">
