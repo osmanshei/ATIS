@@ -63,6 +63,7 @@ export default async function BalancesPage({
     : { data: [] as any[] };
 
   const arrearsStudentMap = new Map((arrearsStudents || []).map((s: any) => [s.id, s]));
+  const arrearsByStudentId = new Map((arrearsRows || []).map((r: any) => [r.student_id, Number(r.arrears_amount || 0)]));
   const classMap = new Map((classes || []).map((c: any) => [c.id, c]));
 
   const outstanding = (rows || []).reduce(
@@ -141,12 +142,16 @@ export default async function BalancesPage({
           <thead>
             <tr>
               <th>Student</th><th>Class</th><th>Gross</th><th>Concession</th>
-              <th>Other Adj.</th><th>Net Fees</th><th>Paid</th><th>Balance</th><th>Credit</th><th></th>
+              <th>Other Adj.</th><th>Net Fees</th><th>Paid</th><th>Current-term balance</th>
+              <th>Previous arrears</th><th>Combined due</th><th>Credit</th><th></th>
             </tr>
           </thead>
           <tbody>
             {(rows || []).map((r: any) => {
               const name = [r.first_name, r.middle_name, r.last_name].filter(Boolean).join(" ");
+              const previousArrears = arrearsByStudentId.get(r.student_id) || 0;
+              const currentTermBalance = Number(r.outstanding_balance || 0);
+              const combinedDue = currentTermBalance + previousArrears;
               return (
                 <tr key={r.student_id}>
                   <td><strong>{name}</strong><br /><span className="muted">{r.admission_number || ""}</span></td>
@@ -156,7 +161,9 @@ export default async function BalancesPage({
                   <td>{money(r.additional_adjustment)}</td>
                   <td><strong>{money(r.net_fees)}</strong></td>
                   <td>{money(r.amount_paid)}</td>
-                  <td><strong className={Number(r.outstanding_balance || 0) > 0 ? "finance-due" : ""}>{money(r.outstanding_balance)}</strong></td>
+                  <td><strong className={currentTermBalance > 0 ? "finance-due" : ""}>{money(currentTermBalance)}</strong></td>
+                  <td>{previousArrears > 0 ? <strong className="finance-due">{money(previousArrears)}</strong> : "—"}</td>
+                  <td><strong className={combinedDue > 0 ? "finance-due" : ""}>{money(combinedDue)}</strong></td>
                   <td>{Number(r.credit_balance || 0) > 0 ? money(r.credit_balance) : "—"}</td>
                   <td>
                     <Link className="button secondary compact" href={"/finance/student/" + r.student_id + "?term=" + termId}>
@@ -167,7 +174,7 @@ export default async function BalancesPage({
               );
             })}
             {!rows?.length ? (
-              <tr><td colSpan={10} className="muted">No student fee balances are available. Configure fee items first.</td></tr>
+              <tr><td colSpan={12} className="muted">No student fee balances are available. Configure fee items first.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -186,7 +193,7 @@ export default async function BalancesPage({
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Student</th><th>Class at import</th><th>Arrears</th><th>Last updated</th></tr>
+              <tr><th>Student</th><th>Class at import</th><th>Arrears</th><th>Last updated</th><th></th></tr>
             </thead>
             <tbody>
               {(arrearsRows || []).map((r: any) => {
@@ -204,11 +211,12 @@ export default async function BalancesPage({
                     <td>{cls?.class_name || "—"}{cls?.section ? " / " + cls.section : ""}</td>
                     <td><strong className="finance-due">{money(r.arrears_amount)}</strong></td>
                     <td>{r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-GH") : "—"}</td>
+                    <td><Link className="button secondary compact" href={"/finance/student/" + r.student_id + "?term=" + termId}>Statement</Link></td>
                   </tr>
                 );
               })}
               {!arrearsRows?.length ? (
-                <tr><td colSpan={4} className="muted">No historical arrears have been imported yet.</td></tr>
+                <tr><td colSpan={5} className="muted">No historical arrears have been imported yet.</td></tr>
               ) : null}
             </tbody>
           </table>
