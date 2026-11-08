@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { PrintButton } from "@/components/print-button";
@@ -27,7 +28,7 @@ export default async function PayslipPage({
 
   const [{ data: item }, { data: school }, { data: settings }] = await Promise.all([
     supabase.from("payroll_item_summary").select("*").eq("id", itemId).maybeSingle(),
-    supabase.from("schools").select("name,short_name,address,city,region,phone,email").limit(1).maybeSingle(),
+    supabase.from("schools").select("name,short_name,address,city,region,phone,email,logo_url").eq("id", profile.school_id).maybeSingle(),
     supabase.from("payroll_settings").select("key,value").in("key", ["EARLY_ALLOWANCE_MIN_DAYS"]),
   ]);
 
@@ -43,10 +44,13 @@ export default async function PayslipPage({
         <PrintButton label="Print Payslip" />
       </div>
 
-      <header className="document-header">
-        <h1>{school?.name || "AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL"}</h1>
-        <p>{[school?.address, school?.city, school?.region].filter(Boolean).join(", ")}</p>
-        <h2>STAFF PAYSLIP</h2>
+      <header className="document-header document-header-branded">
+        <Image src={school?.logo_url || "/atis-logo.svg"} alt={school?.short_name || "School logo"} width={64} height={64} unoptimized />
+        <div>
+          <h1>{school?.name || "AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL"}</h1>
+          <p>{[school?.address, school?.city, school?.region].filter(Boolean).join(", ")}</p>
+          <h2>STAFF PAYSLIP</h2>
+        </div>
       </header>
 
       <div className="document-meta-grid">

@@ -227,7 +227,7 @@ export default async function ReportCardPage({
 
         <header className="report-header">
           <div className="report-logo">
-            <Image src="/atis-logo.svg" alt="ATIS" width={74} height={74} />
+            <Image src={school?.logo_url || "/atis-logo.svg"} alt={school?.short_name || "School logo"} width={74} height={74} unoptimized />
           </div>
           <div>
             <h1>{school?.name || "AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL"}</h1>

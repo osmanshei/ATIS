@@ -22,7 +22,7 @@ export default async function StaffAppointmentLetterPage({
 
   const { data: school } = await supabase
     .from("schools")
-    .select("name,short_name,address,phone,email,website")
+    .select("name,short_name,address,phone,email,website,logo_url")
     .eq("id", profile.school_id)
     .single();
 
@@ -35,7 +35,7 @@ export default async function StaffAppointmentLetterPage({
 
       <article className="letter-page">
         <header className="letter-header">
-          <Image src="/atis-logo.svg" alt="ATIS" width={76} height={76} />
+          <Image src={school?.logo_url || "/atis-logo.svg"} alt={school?.short_name || "School logo"} width={76} height={76} unoptimized />
           <div>
             <h1>{school?.name || "AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL"}</h1>
             <p>{school?.address || "Bimbilla, Northern Region - Ghana"}</p>

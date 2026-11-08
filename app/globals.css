@@ -2515,6 +2515,19 @@ tbody tr:hover { background: #fbfdfb; }
   background: #fff;
   box-shadow: var(--shadow-sm);
 }
+.document-header-branded {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.document-header-branded img {
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+.document-header-branded > div {
+  text-align: center;
+}
 .document-header {
   margin-bottom: 18px;
   text-align: center;

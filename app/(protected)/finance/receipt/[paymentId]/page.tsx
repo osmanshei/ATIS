@@ -24,7 +24,7 @@ export default async function FeeReceiptPage({
     supabase.from("fee_payment_summary").select("*").eq("id", paymentId).single(),
     supabase
       .from("schools")
-      .select("name,short_name,address,phone,email")
+      .select("name,short_name,address,phone,email,logo_url")
       .eq("id", profile.school_id)
       .single(),
   ]);
@@ -69,7 +69,7 @@ export default async function FeeReceiptPage({
       <div className="fee-receipt">
         {payment.is_reversed ? <div className="receipt-watermark">REVERSED</div> : null}
         <header className="receipt-header">
-          <Image src="/atis-logo.svg" alt="ATIS" width={62} height={62} />
+          <Image src={school?.logo_url || "/atis-logo.svg"} alt={school?.short_name || "School logo"} width={62} height={62} unoptimized />
           <div>
             <h1>{school?.name || "AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL"}</h1>
             <p>{school?.address || "Bimbilla, Northern Region - Ghana"}</p>
