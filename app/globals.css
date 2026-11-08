@@ -3599,3 +3599,43 @@ tbody tr:hover { background: #fbfdfb; }
     max-width: 100%;
   }
 }
+
+
+@media screen and (max-width: 700px) {
+  .table-wrap,
+  .timetable-table-wrap {
+    overflow: visible !important;
+  }
+
+  table:not(.mobile-card-table) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+
+  table:not(.mobile-card-table) th,
+  table:not(.mobile-card-table) td {
+    padding: 7px 5px;
+    font-size: 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .timetable-grid {
+    min-width: 0 !important;
+  }
+
+  .login-brand {
+    min-height: 0;
+    padding: 24px 18px;
+  }
+
+  .login-panel {
+    padding: 20px 12px;
+  }
+
+  .login-card {
+    padding: 20px;
+  }
+}
