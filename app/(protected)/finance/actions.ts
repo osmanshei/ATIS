@@ -58,6 +58,7 @@ export async function recordFeePaymentAction(formData: FormData) {
   revalidatePath("/finance");
   revalidatePath("/finance/payments");
   revalidatePath("/finance/balances");
+  revalidatePath("/finance/student/" + studentId);
   revalidatePath("/results");
   redirect("/finance/receipt/" + data + "?ok=Payment+recorded.");
 }
@@ -67,6 +68,11 @@ export async function reverseFeePaymentAction(formData: FormData) {
 
   const paymentId = value(formData, "payment_id");
   const reason = value(formData, "reason");
+  const { data: payment } = await supabase
+    .from("fee_payment_summary")
+    .select("student_id")
+    .eq("id", paymentId)
+    .maybeSingle();
 
   const { error } = await supabase.rpc("reverse_fee_payment", {
     p_payment_id: paymentId,
@@ -80,6 +86,7 @@ export async function reverseFeePaymentAction(formData: FormData) {
   revalidatePath("/finance");
   revalidatePath("/finance/payments");
   revalidatePath("/finance/balances");
+  if (payment?.student_id) revalidatePath("/finance/student/" + payment.student_id);
   revalidatePath("/finance/receipt/" + paymentId);
   redirect("/finance/receipt/" + paymentId + "?ok=Payment+reversed.");
 }
