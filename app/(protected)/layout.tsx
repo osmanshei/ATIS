@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/sidebar";
+import { MobileTableEnhancer } from "@/components/mobile-table-enhancer";
 import { requireProfile } from "@/lib/auth";
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="shell">
+      <MobileTableEnhancer />
       <Sidebar profile={profile} schoolLogoUrl={school?.logo_url} />
       <div className="main">
         <header className="topbar">

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -50,9 +51,10 @@ function NavIcon({ code }: { code: string }) {
 export function Sidebar({ profile, schoolLogoUrl }: { profile: CurrentProfile; schoolLogoUrl?: string | null }) {
   const pathname = usePathname();
   const items = navigationForRole(profile.role);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <aside className="sidebar">
+    <aside className={mobileOpen ? "sidebar mobile-open" : "sidebar"}>
       <div className="brand-row">
         <div className="brand-mark">
           <Image src={schoolLogoUrl || "/atis-logo.svg"} alt="ATIS" width={44} height={44} priority unoptimized />
@@ -61,10 +63,19 @@ export function Sidebar({ profile, schoolLogoUrl }: { profile: CurrentProfile; s
           <strong>ATIS</strong>
           <small>School Management</small>
         </div>
+        <button
+          className="mobile-nav-toggle"
+          type="button"
+          aria-expanded={mobileOpen}
+          aria-controls="atis-primary-nav"
+          onClick={() => setMobileOpen((open) => !open)}
+        >
+          {mobileOpen ? "Close menu" : "Menu"}
+        </button>
       </div>
 
       <div className="nav-section-label">Workspace</div>
-      <nav className="nav">
+      <nav className="nav" id="atis-primary-nav">
         {items.map((item) => {
           const active =
             pathname === item.href ||
@@ -91,6 +102,7 @@ export function Sidebar({ profile, schoolLogoUrl }: { profile: CurrentProfile; s
               href={item.href}
               key={item.href}
               className={active ? "active" : undefined}
+              onClick={() => setMobileOpen(false)}
             >
               <span className="nav-icon"><NavIcon code={item.short} /></span>
               <span>{label}</span>
