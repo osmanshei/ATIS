@@ -35,7 +35,7 @@ export default async function StudentFinancePage({
     terms?.[0]?.id ||
     "";
 
-  const [{ data: cls }, { data: balance }, { data: payments }, { data: feeItems }, { data: adjustments }, { data: historicalArrears }] =
+  const [{ data: cls }, { data: balance }, { data: payments }, { data: feeItems }, { data: adjustments }, { data: historicalArrears, error: historicalArrearsError }] =
     await Promise.all([
       supabase
         .from("classes")
@@ -99,6 +99,7 @@ export default async function StudentFinancePage({
 
       {query.ok ? <div className="notice success">{query.ok}</div> : null}
       {query.error ? <div className="notice error">{query.error}</div> : null}
+      {historicalArrearsError ? <div className="notice error">Historical arrears could not be loaded. The combined amount due may be incomplete until database migration 0023 is applied in Supabase.</div> : null}
 
       <form className="term-switcher" method="get">
         <label>Term</label>
