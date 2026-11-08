@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { loginAction } from "./actions";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export default async function LoginPage({
   searchParams,
@@ -7,12 +8,18 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
   const params = await searchParams;
+  const admin = createAdminClient();
+  const { data: school } = await admin
+    .from("schools")
+    .select("name,short_name,logo_url")
+    .eq("code", "ATIS")
+    .maybeSingle();
 
   return (
     <main className="login-page">
       <section className="login-brand">
         <div>
-          <Image src="/atis-logo.svg" alt="ATIS" width={100} height={100} priority />
+          <Image src={school?.logo_url || "/atis-logo.svg"} alt={school?.short_name || "School logo"} width={100} height={100} priority unoptimized />
           <h1>ATIS Web</h1>
           <p>
             The hosted school-management platform for AL-KHALIDIYA TECHNICAL ISLAMIC SCHOOL.
