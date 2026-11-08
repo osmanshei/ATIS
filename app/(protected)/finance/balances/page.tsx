@@ -50,7 +50,7 @@ export default async function BalancesPage({
 
   if (classId) arrearsQuery = arrearsQuery.eq("class_id", classId);
 
-  const { data: arrearsRows } = await arrearsQuery;
+  const { data: arrearsRows, error: arrearsError } = await arrearsQuery;
   const arrearsStudentIds = Array.from(
     new Set((arrearsRows || []).map((r: any) => r.student_id)),
   );
@@ -88,6 +88,8 @@ export default async function BalancesPage({
         </div>
         <Link className="button secondary" href={"/finance?term=" + termId}>Back to finance</Link>
       </div>
+
+      {arrearsError ? <div className="notice error">Historical arrears could not be loaded. The combined totals below may be incomplete until database migration 0023 is applied in Supabase.</div> : null}
 
       <form className="form-card form-grid" method="get">
         <div className="field">
