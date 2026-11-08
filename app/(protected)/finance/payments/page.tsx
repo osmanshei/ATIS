@@ -99,7 +99,7 @@ export default async function PaymentsPage({
           .select("original_arrears_amount,arrears_paid,remaining_arrears,updated_at")
           .eq("student_id", selectedStudent.id)
           .maybeSingle()
-      : Promise.resolve({ data: null as any }),
+      : Promise.resolve({ data: null as any, error: null as any }),
     selectedStudent
       ? supabase
           .from("fee_items")
