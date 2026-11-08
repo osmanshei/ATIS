@@ -84,12 +84,19 @@ export default async function PaymentsPage({
 
   const selectedStudent = selectedStudentResult.data;
 
-  const [balanceResult, feeItemsResult, recentPaymentsResult] = await Promise.all([
+  const [balanceResult, arrearsResult, feeItemsResult, recentPaymentsResult] = await Promise.all([
     selectedStudent
       ? supabase
           .from("finance_student_summary")
           .select("student_id,class_id,class_name,section,net_fees,amount_paid,outstanding_balance,credit_balance")
           .eq("term_id", termId)
+          .eq("student_id", selectedStudent.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null as any }),
+    selectedStudent
+      ? supabase
+          .from("student_fee_arrears_summary")
+          .select("original_arrears_amount,arrears_paid,remaining_arrears,updated_at")
           .eq("student_id", selectedStudent.id)
           .maybeSingle()
       : Promise.resolve({ data: null as any }),
@@ -110,6 +117,7 @@ export default async function PaymentsPage({
   ]);
 
   const balance = balanceResult.data as any;
+  const historicalArrears = arrearsResult.data as any;
   const applicableItems = selectedStudent
     ? (feeItemsResult.data || []).filter(
         (f: any) => f.applies_to_all_students || f.class_id === selectedStudent.class_id,
@@ -234,9 +242,10 @@ export default async function PaymentsPage({
             <input type="hidden" name="term_id" value={termId} />
 
             <div className="payment-balance-card">
-              <span>Current outstanding</span>
-              <strong>{balance ? money(balance.outstanding_balance) : "Fees not configured"}</strong>
-              {balance ? <small>Paid {money(balance.amount_paid)} of {money(balance.net_fees)}</small> : null}
+              <span>Combined outstanding</span>
+              <strong>{money(Number(balance?.outstanding_balance || 0) + Number(historicalArrears?.remaining_arrears || 0))}</strong>
+              <small>Previous arrears: {money(historicalArrears?.remaining_arrears)} · Current-term balance: {money(balance?.outstanding_balance)}</small>
+              {balance ? <small>Applied to current-term fees: {money(balance.amount_paid)} of {money(balance.net_fees)}</small> : null}
             </div>
 
             <div className="field">
@@ -250,6 +259,9 @@ export default async function PaymentsPage({
                   </option>
                 ))}
               </select>
+              <p className="muted">
+                General payments clear previous arrears first, then apply any remainder to current-term fees. If you select a fee item, the full payment is applied to that current-term item.
+              </p>
             </div>
 
             <div className="form-grid">
