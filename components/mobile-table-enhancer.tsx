@@ -6,7 +6,7 @@ export function MobileTableEnhancer() {
   useEffect(() => {
     const addMobileLabels = () => {
       document.querySelectorAll<HTMLTableElement>("table").forEach((table) => {
-        const headerRows = table.querySelectorAll("thead tr");
+        const headerRows = table.querySelectorAll<HTMLTableRowElement>("thead tr");
         const headerRow = headerRows[headerRows.length - 1];
         if (!headerRow) return;
 
@@ -14,7 +14,7 @@ export function MobileTableEnhancer() {
         if (!headers.length) return;
 
         let hasBodyRows = false;
-        table.querySelectorAll("tbody tr").forEach((row) => {
+        table.querySelectorAll<HTMLTableRowElement>("tbody tr").forEach((row) => {
           const cells = Array.from(row.cells).filter((cell) => cell.tagName === "TD");
           if (!cells.length) return;
           hasBodyRows = true;
