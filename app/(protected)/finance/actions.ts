@@ -41,6 +41,19 @@ export async function recordFeePaymentAction(formData: FormData) {
   const amount = Number(value(formData, "amount"));
   const feeItemId = value(formData, "fee_item_id");
 
+  const { error: allocationReadyError } = await supabase
+    .from("student_fee_arrears_summary")
+    .select("student_id")
+    .eq("student_id", studentId)
+    .maybeSingle();
+
+  if (allocationReadyError) {
+    redirect(
+      "/finance/payments?error=" +
+        encodeURIComponent("Payment posting is disabled until the historical arrears allocation migration is applied and balances can be verified."),
+    );
+  }
+
   const { data, error } = await supabase.rpc("record_fee_payment", {
     p_student_id: studentId,
     p_term_id: termId,
