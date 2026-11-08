@@ -35,7 +35,7 @@ export default async function StudentFinancePage({
     terms?.[0]?.id ||
     "";
 
-  const [{ data: cls }, { data: balance }, { data: payments }, { data: feeItems }, { data: adjustments }, { data: historicalArrears }] =
+  const [{ data: cls }, { data: balance }, { data: payments }, { data: feeItems }, { data: adjustments }, { data: historicalArrears, error: historicalArrearsError }] =
     await Promise.all([
       supabase
         .from("classes")
@@ -50,7 +50,7 @@ export default async function StudentFinancePage({
         .maybeSingle(),
       supabase
         .from("fee_payment_summary")
-        .select("id,amount,payment_date,payment_method,receipt_no,fee_name,is_reversed,reversal_reason")
+        .select("id,amount,arrears_amount_applied,term_amount_applied,payment_date,payment_method,receipt_no,fee_name,is_reversed,reversal_reason")
         .eq("student_id", studentId)
         .eq("term_id", termId)
         .order("payment_date", { ascending: false }),
@@ -67,8 +67,8 @@ export default async function StudentFinancePage({
         .eq("term_id", termId)
         .order("created_at", { ascending: false }),
       supabase
-        .from("student_fee_arrears")
-        .select("arrears_amount,updated_at")
+        .from("student_fee_arrears_summary")
+        .select("original_arrears_amount,arrears_paid,remaining_arrears,updated_at")
         .eq("student_id", studentId)
         .maybeSingle(),
     ]);
@@ -80,7 +80,7 @@ export default async function StudentFinancePage({
   const name = [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
   const classLabel = cls ? cls.class_name + (cls.section ? " / " + cls.section : "") : "—";
   const currentTermOutstanding = Number(balance?.outstanding_balance || 0);
-  const previousArrears = Number(historicalArrears?.arrears_amount || 0);
+  const previousArrears = Number(historicalArrears?.remaining_arrears || 0);
   const combinedOutstanding = currentTermOutstanding + previousArrears;
 
   return (
@@ -99,6 +99,7 @@ export default async function StudentFinancePage({
 
       {query.ok ? <div className="notice success">{query.ok}</div> : null}
       {query.error ? <div className="notice error">{query.error}</div> : null}
+      {historicalArrearsError ? <div className="notice error">Historical arrears could not be loaded. The combined amount due may be incomplete until database migration 0023 is applied in Supabase.</div> : null}
 
       <form className="term-switcher" method="get">
         <label>Term</label>
@@ -112,15 +113,15 @@ export default async function StudentFinancePage({
         <div className="metric-card"><span className="metric-kicker">Gross fees</span><strong>{balance ? money(balance.gross_fees) : "—"}</strong><small>Configured class charges</small></div>
         <div className="metric-card"><span className="metric-kicker">Concession</span><strong>{balance ? money(balance.concession_amount) : "—"}</strong><small>{Number(student.concession_percent || 0)}% student concession</small></div>
         <div className="metric-card"><span className="metric-kicker">Net fees</span><strong>{balance ? money(balance.net_fees) : "—"}</strong><small>After all adjustments</small></div>
-        <div className="metric-card"><span className="metric-kicker">Paid</span><strong>{balance ? money(balance.amount_paid) : money(0)}</strong><small>Valid posted payments</small></div>
+        <div className="metric-card"><span className="metric-kicker">Current-term paid</span><strong>{balance ? money(balance.amount_paid) : money(0)}</strong><small>Payments allocated to current-term fees</small></div>
         <div className="metric-card"><span className="metric-kicker">Current-term outstanding</span><strong>{money(currentTermOutstanding)}</strong><small>{Number(balance?.credit_balance || 0) > 0 ? "Credit " + money(balance?.credit_balance) : "Unpaid current-term fees"}</small></div>
       </div>
 
       <div className="grid-2">
         <div className="metric-card">
-          <span className="metric-kicker">Previous arrears</span>
+          <span className="metric-kicker">Previous arrears remaining</span>
           <strong>{money(previousArrears)}</strong>
-          <small>{historicalArrears?.updated_at ? "Opening balance updated " + new Date(historicalArrears.updated_at).toLocaleDateString("en-GH") : "No historical arrears imported"}</small>
+          <small>{historicalArrears ? "Opening " + money(historicalArrears.original_arrears_amount) + " · Applied " + money(historicalArrears.arrears_paid) : "No historical arrears imported"}</small>
         </div>
         <div className="metric-card">
           <span className="metric-kicker">Total amount due</span>
@@ -129,7 +130,7 @@ export default async function StudentFinancePage({
         </div>
       </div>
       <div className="notice">
-        Previous arrears are included in the total amount due but remain separate from current-term charges. Payments recorded through the current-term payment desk do not automatically reduce these opening arrears.
+        General payments are allocated to previous arrears first, then to current-term fees. Payments assigned to a specific fee item remain allocated to that current-term item.
       </div>
 
       <div className="grid-2">
@@ -138,7 +139,7 @@ export default async function StudentFinancePage({
           <h2 className="section-title">Payment history</h2>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Date</th><th>Receipt</th><th>Fee</th><th>Amount</th><th>Status</th></tr></thead>
+              <thead><tr><th>Date</th><th>Receipt</th><th>Fee</th><th>Received</th><th>Previous arrears</th><th>Current term</th><th>Status</th></tr></thead>
               <tbody>
                 {(payments || []).map((p: any) => (
                   <tr key={p.id}>
@@ -146,10 +147,12 @@ export default async function StudentFinancePage({
                     <td><Link className="text-link" href={"/finance/receipt/" + p.id}>{p.receipt_no}</Link></td>
                     <td>{p.fee_name || "General"}</td>
                     <td>{money(p.amount)}</td>
+                    <td>{money(p.arrears_amount_applied)}</td>
+                    <td>{money(p.term_amount_applied)}</td>
                     <td><span className={p.is_reversed ? "tag gray" : "tag"}>{p.is_reversed ? "Reversed" : "Posted"}</span></td>
                   </tr>
                 ))}
-                {!payments?.length ? <tr><td colSpan={5} className="muted">No payments for this term.</td></tr> : null}
+                {!payments?.length ? <tr><td colSpan={7} className="muted">No payments for this term.</td></tr> : null}
               </tbody>
             </table>
           </div>

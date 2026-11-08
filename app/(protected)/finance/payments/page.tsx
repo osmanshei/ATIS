@@ -84,7 +84,7 @@ export default async function PaymentsPage({
 
   const selectedStudent = selectedStudentResult.data;
 
-  const [balanceResult, feeItemsResult, recentPaymentsResult] = await Promise.all([
+  const [balanceResult, arrearsResult, feeItemsResult, recentPaymentsResult] = await Promise.all([
     selectedStudent
       ? supabase
           .from("finance_student_summary")
@@ -93,6 +93,13 @@ export default async function PaymentsPage({
           .eq("student_id", selectedStudent.id)
           .maybeSingle()
       : Promise.resolve({ data: null as any }),
+    selectedStudent
+      ? supabase
+          .from("student_fee_arrears_summary")
+          .select("original_arrears_amount,arrears_paid,remaining_arrears,updated_at")
+          .eq("student_id", selectedStudent.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null as any, error: null as any }),
     selectedStudent
       ? supabase
           .from("fee_items")
@@ -110,6 +117,8 @@ export default async function PaymentsPage({
   ]);
 
   const balance = balanceResult.data as any;
+  const historicalArrears = arrearsResult.data as any;
+  const arrearsLoadError = arrearsResult.error;
   const applicableItems = selectedStudent
     ? (feeItemsResult.data || []).filter(
         (f: any) => f.applies_to_all_students || f.class_id === selectedStudent.class_id,
@@ -130,6 +139,11 @@ export default async function PaymentsPage({
       </div>
 
       {params.error ? <div className="notice error">{params.error}</div> : null}
+      {selectedStudent && arrearsLoadError ? (
+        <div className="notice error">
+          Historical arrears could not be loaded. Apply database migration 0023 in Supabase before posting this payment. Payment posting is disabled until the balance can be verified.
+        </div>
+      ) : null}
 
       <div className="grid-2">
         <section className="form-card">
@@ -234,9 +248,10 @@ export default async function PaymentsPage({
             <input type="hidden" name="term_id" value={termId} />
 
             <div className="payment-balance-card">
-              <span>Current outstanding</span>
-              <strong>{balance ? money(balance.outstanding_balance) : "Fees not configured"}</strong>
-              {balance ? <small>Paid {money(balance.amount_paid)} of {money(balance.net_fees)}</small> : null}
+              <span>Combined outstanding</span>
+              <strong>{money(Number(balance?.outstanding_balance || 0) + Number(historicalArrears?.remaining_arrears || 0))}</strong>
+              <small>Previous arrears: {money(historicalArrears?.remaining_arrears)} · Current-term balance: {money(balance?.outstanding_balance)}</small>
+              {balance ? <small>Applied to current-term fees: {money(balance.amount_paid)} of {money(balance.net_fees)}</small> : null}
             </div>
 
             <div className="field">
@@ -250,6 +265,9 @@ export default async function PaymentsPage({
                   </option>
                 ))}
               </select>
+              <p className="muted">
+                General payments clear previous arrears first, then apply any remainder to current-term fees. If you select a fee item, the full payment is applied to that current-term item.
+              </p>
             </div>
 
             <div className="form-grid">
@@ -278,7 +296,7 @@ export default async function PaymentsPage({
               <label>Remarks</label>
               <textarea name="remarks" rows={2} />
             </div>
-            <button className="button" type="submit">Post Payment & Generate Receipt</button>
+            <button className="button" type="submit" disabled={Boolean(arrearsLoadError)}>Post Payment & Generate Receipt</button>
           </form>
         ) : (
           <section className="card">

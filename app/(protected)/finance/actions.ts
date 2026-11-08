@@ -41,6 +41,19 @@ export async function recordFeePaymentAction(formData: FormData) {
   const amount = Number(value(formData, "amount"));
   const feeItemId = value(formData, "fee_item_id");
 
+  const { error: allocationReadyError } = await supabase
+    .from("student_fee_arrears_summary")
+    .select("student_id")
+    .eq("student_id", studentId)
+    .maybeSingle();
+
+  if (allocationReadyError) {
+    redirect(
+      "/finance/payments?error=" +
+        encodeURIComponent("Payment posting is disabled until the historical arrears allocation migration is applied and balances can be verified."),
+    );
+  }
+
   const { data, error } = await supabase.rpc("record_fee_payment", {
     p_student_id: studentId,
     p_term_id: termId,
@@ -58,6 +71,7 @@ export async function recordFeePaymentAction(formData: FormData) {
   revalidatePath("/finance");
   revalidatePath("/finance/payments");
   revalidatePath("/finance/balances");
+  revalidatePath("/finance/student/" + studentId);
   revalidatePath("/results");
   redirect("/finance/receipt/" + data + "?ok=Payment+recorded.");
 }
@@ -67,6 +81,11 @@ export async function reverseFeePaymentAction(formData: FormData) {
 
   const paymentId = value(formData, "payment_id");
   const reason = value(formData, "reason");
+  const { data: payment } = await supabase
+    .from("fee_payment_summary")
+    .select("student_id")
+    .eq("id", paymentId)
+    .maybeSingle();
 
   const { error } = await supabase.rpc("reverse_fee_payment", {
     p_payment_id: paymentId,
@@ -80,6 +99,7 @@ export async function reverseFeePaymentAction(formData: FormData) {
   revalidatePath("/finance");
   revalidatePath("/finance/payments");
   revalidatePath("/finance/balances");
+  if (payment?.student_id) revalidatePath("/finance/student/" + payment.student_id);
   revalidatePath("/finance/receipt/" + paymentId);
   redirect("/finance/receipt/" + paymentId + "?ok=Payment+reversed.");
 }

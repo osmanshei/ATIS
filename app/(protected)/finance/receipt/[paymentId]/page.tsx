@@ -31,17 +31,27 @@ export default async function FeeReceiptPage({
 
   if (!payment) notFound();
 
-  const { data: balance } = await supabase
-    .from("finance_student_summary")
-    .select("net_fees,amount_paid,outstanding_balance,credit_balance")
-    .eq("student_id", payment.student_id)
-    .eq("term_id", payment.term_id)
-    .maybeSingle();
+  const [{ data: balance }, { data: historicalArrears, error: historicalArrearsError }] = await Promise.all([
+    supabase
+      .from("finance_student_summary")
+      .select("net_fees,amount_paid,outstanding_balance,credit_balance")
+      .eq("student_id", payment.student_id)
+      .eq("term_id", payment.term_id)
+      .maybeSingle(),
+    supabase
+      .from("student_fee_arrears_summary")
+      .select("original_arrears_amount,arrears_paid,remaining_arrears")
+      .eq("student_id", payment.student_id)
+      .maybeSingle(),
+  ]);
 
   const studentName = [payment.first_name, payment.middle_name, payment.last_name]
     .filter(Boolean)
     .join(" ");
   const classLabel = payment.class_name + (payment.section ? " / " + payment.section : "");
+  const previousArrears = Number(historicalArrears?.remaining_arrears || 0);
+  const currentTermOutstanding = Number(balance?.outstanding_balance || 0);
+  const combinedOutstanding = previousArrears + currentTermOutstanding;
 
   return (
     <>
@@ -54,6 +64,7 @@ export default async function FeeReceiptPage({
 
       {query.ok ? <div className="notice success no-print">{query.ok}</div> : null}
       {query.error ? <div className="notice error no-print">{query.error}</div> : null}
+      {historicalArrearsError ? <div className="notice error no-print">Historical arrears could not be loaded. The combined amount due may be incomplete until database migration 0023 is applied in Supabase.</div> : null}
 
       <div className="fee-receipt">
         {payment.is_reversed ? <div className="receipt-watermark">REVERSED</div> : null}
@@ -87,14 +98,19 @@ export default async function FeeReceiptPage({
         </section>
 
         <section className="receipt-balance">
-          <div><span>Term Net Fees</span><strong>{balance ? money(balance.net_fees) : "—"}</strong></div>
-          <div><span>Total Paid</span><strong>{balance ? money(balance.amount_paid) : "—"}</strong></div>
-          <div><span>Outstanding</span><strong>{balance ? money(balance.outstanding_balance) : "—"}</strong></div>
-          <div><span>Credit</span><strong>{balance && Number(balance.credit_balance || 0) > 0 ? money(balance.credit_balance) : "—"}</strong></div>
+          <div><span>Applied to previous arrears</span><strong>{money(payment.arrears_amount_applied)}</strong></div>
+          <div><span>Applied to current-term fees</span><strong>{money(payment.term_amount_applied)}</strong></div>
+        </section>
+
+        <section className="receipt-balance">
+          <div><span>Previous arrears remaining</span><strong>{money(previousArrears)}</strong></div>
+          <div><span>Current-term outstanding</span><strong>{money(currentTermOutstanding)}</strong></div>
+          <div><span>Combined amount due</span><strong>{money(combinedOutstanding)}</strong></div>
+          <div><span>Current-term credit</span><strong>{balance && Number(balance.credit_balance || 0) > 0 ? money(balance.credit_balance) : "—"}</strong></div>
         </section>
 
         {payment.remarks ? <p className="receipt-note"><strong>Remarks:</strong> {payment.remarks}</p> : null}
-        {payment.is_reversed ? <p className="receipt-reversal"><strong>Reversal reason:</strong> {payment.reversal_reason}</p> : null}
+        {payment.is_reversed ? <p className="receipt-reversal"><strong>Reversal reason:</strong> {payment.reversal_reason}. The original allocation shown above has been reversed and the amounts restored to the student's balance.</p> : null}
 
         <footer className="receipt-footer">
           <div><span></span><strong>Cashier / Accountant</strong></div>

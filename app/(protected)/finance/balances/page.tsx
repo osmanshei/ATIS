@@ -44,14 +44,13 @@ export default async function BalancesPage({
   const { data: rows } = await query;
 
   let arrearsQuery = supabase
-    .from("student_fee_arrears")
-    .select("student_id,class_id,arrears_amount,updated_at")
-    .gt("arrears_amount", 0)
+    .from("student_fee_arrears_summary")
+    .select("student_id,class_id,original_arrears_amount,arrears_paid,remaining_arrears,updated_at")
     .order("updated_at", { ascending: false });
 
   if (classId) arrearsQuery = arrearsQuery.eq("class_id", classId);
 
-  const { data: arrearsRows } = await arrearsQuery;
+  const { data: arrearsRows, error: arrearsError } = await arrearsQuery;
   const arrearsStudentIds = Array.from(
     new Set((arrearsRows || []).map((r: any) => r.student_id)),
   );
@@ -63,7 +62,7 @@ export default async function BalancesPage({
     : { data: [] as any[] };
 
   const arrearsStudentMap = new Map((arrearsStudents || []).map((s: any) => [s.id, s]));
-  const arrearsByStudentId = new Map((arrearsRows || []).map((r: any) => [r.student_id, Number(r.arrears_amount || 0)]));
+  const arrearsByStudentId = new Map((arrearsRows || []).map((r: any) => [r.student_id, Number(r.remaining_arrears || 0)]));
   const classMap = new Map((classes || []).map((c: any) => [c.id, c]));
 
   const outstanding = (rows || []).reduce(
@@ -74,7 +73,7 @@ export default async function BalancesPage({
   const netFees = (rows || []).reduce((sum: number, r: any) => sum + Number(r.net_fees || 0), 0);
   const debtors = (rows || []).filter((r: any) => Number(r.outstanding_balance || 0) > 0).length;
   const arrearsTotal = (arrearsRows || []).reduce(
-    (sum: number, r: any) => sum + Number(r.arrears_amount || 0),
+    (sum: number, r: any) => sum + Number(r.remaining_arrears || 0),
     0,
   );
   const combinedOutstanding = outstanding + arrearsTotal;
@@ -89,6 +88,8 @@ export default async function BalancesPage({
         </div>
         <Link className="button secondary" href={"/finance?term=" + termId}>Back to finance</Link>
       </div>
+
+      {arrearsError ? <div className="notice error">Historical arrears could not be loaded. The combined totals below may be incomplete until database migration 0023 is applied in Supabase.</div> : null}
 
       <form className="form-card form-grid" method="get">
         <div className="field">
@@ -116,9 +117,9 @@ export default async function BalancesPage({
           <small>After concessions and adjustments</small>
         </div>
         <div className="metric-card">
-          <span className="metric-kicker">Collected</span>
+          <span className="metric-kicker">Applied to current-term fees</span>
           <strong>{money(paid)}</strong>
-          <small>Total valid payments posted</small>
+          <small>Payments allocated to current-term charges</small>
         </div>
         <div className="metric-card">
           <span className="metric-kicker">Current-term outstanding</span>
@@ -126,7 +127,7 @@ export default async function BalancesPage({
           <small>{debtors} students with balances</small>
         </div>
         <div className="metric-card">
-          <span className="metric-kicker">Previous arrears</span>
+          <span className="metric-kicker">Previous arrears remaining</span>
           <strong>{money(arrearsTotal)}</strong>
           <small>{arrearsRows?.length || 0} imported opening balances</small>
         </div>
@@ -186,14 +187,14 @@ export default async function BalancesPage({
             <div className="eyebrow">Opening balances</div>
             <h2>Previous fee arrears</h2>
             <p className="muted">
-              Imported balances from earlier terms. They remain separate from current-term charges; payments posted against current-term fees do not automatically reduce these arrears.
+              Imported opening balances remain separate from current-term charges. General payments clear previous arrears first; a payment assigned to a specific fee item remains on that current-term item.
             </p>
           </div>
         </div>
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Student</th><th>Class at import</th><th>Arrears</th><th>Last updated</th><th></th></tr>
+              <tr><th>Student</th><th>Class at import</th><th>Opening arrears</th><th>Applied to arrears</th><th>Remaining arrears</th><th>Last updated</th><th></th></tr>
             </thead>
             <tbody>
               {(arrearsRows || []).map((r: any) => {
@@ -209,14 +210,16 @@ export default async function BalancesPage({
                       <span className="muted">{student?.admission_number || ""}</span>
                     </td>
                     <td>{cls?.class_name || "—"}{cls?.section ? " / " + cls.section : ""}</td>
-                    <td><strong className="finance-due">{money(r.arrears_amount)}</strong></td>
+                    <td>{money(r.original_arrears_amount)}</td>
+                    <td>{money(r.arrears_paid)}</td>
+                    <td><strong className={Number(r.remaining_arrears || 0) > 0 ? "finance-due" : ""}>{money(r.remaining_arrears)}</strong></td>
                     <td>{r.updated_at ? new Date(r.updated_at).toLocaleDateString("en-GH") : "—"}</td>
                     <td><Link className="button secondary compact" href={"/finance/student/" + r.student_id + "?term=" + termId}>Statement</Link></td>
                   </tr>
                 );
               })}
               {!arrearsRows?.length ? (
-                <tr><td colSpan={5} className="muted">No historical arrears have been imported yet.</td></tr>
+                <tr><td colSpan={7} className="muted">No historical arrears have been imported yet.</td></tr>
               ) : null}
             </tbody>
           </table>
