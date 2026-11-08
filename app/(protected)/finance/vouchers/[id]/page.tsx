@@ -25,7 +25,7 @@ export default async function PaymentVoucherPage({
 
   const [{ data: voucher }, { data: school }] = await Promise.all([
     supabase.from("payment_voucher_summary").select("*").eq("id", id).maybeSingle(),
-    supabase.from("schools").select("name,short_name,address,city,region,phone,email,logo_url").limit(1).maybeSingle(),
+    supabase.from("schools").select("name,short_name,address,city,region,phone,email,logo_url").eq("id", profile.school_id).maybeSingle(),
   ]);
 
   if (!voucher) notFound();
