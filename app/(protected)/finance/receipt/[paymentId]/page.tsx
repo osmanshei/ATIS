@@ -31,7 +31,7 @@ export default async function FeeReceiptPage({
 
   if (!payment) notFound();
 
-  const [{ data: balance }, { data: historicalArrears }] = await Promise.all([
+  const [{ data: balance }, { data: historicalArrears, error: historicalArrearsError }] = await Promise.all([
     supabase
       .from("finance_student_summary")
       .select("net_fees,amount_paid,outstanding_balance,credit_balance")
@@ -64,6 +64,7 @@ export default async function FeeReceiptPage({
 
       {query.ok ? <div className="notice success no-print">{query.ok}</div> : null}
       {query.error ? <div className="notice error no-print">{query.error}</div> : null}
+      {historicalArrearsError ? <div className="notice error no-print">Historical arrears could not be loaded. The combined amount due may be incomplete until database migration 0023 is applied in Supabase.</div> : null}
 
       <div className="fee-receipt">
         {payment.is_reversed ? <div className="receipt-watermark">REVERSED</div> : null}
