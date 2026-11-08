@@ -94,9 +94,9 @@ export default async function FinancePage({
           <small>{feeItemCount || 0} active fee items</small>
         </div>
         <div className="metric-card">
-          <span className="metric-kicker">Amount collected</span>
+          <span className="metric-kicker">Applied to current-term fees</span>
           <strong>{money(paid)}</strong>
-          <small>{collectionRate}% collection rate</small>
+          <small>{collectionRate}% of current-term fees · excludes amounts applied to previous arrears</small>
         </div>
         <div className="metric-card">
           <span className="metric-kicker">Outstanding</span>
