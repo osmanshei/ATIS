@@ -35,7 +35,7 @@ export default async function StudentFinancePage({
     terms?.[0]?.id ||
     "";
 
-  const [{ data: cls }, { data: balance }, { data: payments }, { data: feeItems }, { data: adjustments }] =
+  const [{ data: cls }, { data: balance }, { data: payments }, { data: feeItems }, { data: adjustments }, { data: historicalArrears }] =
     await Promise.all([
       supabase
         .from("classes")
@@ -66,6 +66,11 @@ export default async function StudentFinancePage({
         .eq("student_id", studentId)
         .eq("term_id", termId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("student_fee_arrears")
+        .select("arrears_amount,updated_at")
+        .eq("student_id", studentId)
+        .maybeSingle(),
     ]);
 
   const applicableFeeItems = (feeItems || []).filter(
@@ -74,6 +79,9 @@ export default async function StudentFinancePage({
 
   const name = [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
   const classLabel = cls ? cls.class_name + (cls.section ? " / " + cls.section : "") : "—";
+  const currentTermOutstanding = Number(balance?.outstanding_balance || 0);
+  const previousArrears = Number(historicalArrears?.arrears_amount || 0);
+  const combinedOutstanding = currentTermOutstanding + previousArrears;
 
   return (
     <>
@@ -105,7 +113,23 @@ export default async function StudentFinancePage({
         <div className="metric-card"><span className="metric-kicker">Concession</span><strong>{balance ? money(balance.concession_amount) : "—"}</strong><small>{Number(student.concession_percent || 0)}% student concession</small></div>
         <div className="metric-card"><span className="metric-kicker">Net fees</span><strong>{balance ? money(balance.net_fees) : "—"}</strong><small>After all adjustments</small></div>
         <div className="metric-card"><span className="metric-kicker">Paid</span><strong>{balance ? money(balance.amount_paid) : money(0)}</strong><small>Valid posted payments</small></div>
-        <div className="metric-card"><span className="metric-kicker">Outstanding</span><strong>{balance ? money(balance.outstanding_balance) : "—"}</strong><small>{balance && Number(balance.credit_balance || 0) > 0 ? "Credit " + money(balance.credit_balance) : "Current balance"}</small></div>
+        <div className="metric-card"><span className="metric-kicker">Current-term outstanding</span><strong>{money(currentTermOutstanding)}</strong><small>{Number(balance?.credit_balance || 0) > 0 ? "Credit " + money(balance?.credit_balance) : "Unpaid current-term fees"}</small></div>
+      </div>
+
+      <div className="grid-2">
+        <div className="metric-card">
+          <span className="metric-kicker">Previous arrears</span>
+          <strong>{money(previousArrears)}</strong>
+          <small>{historicalArrears?.updated_at ? "Opening balance updated " + new Date(historicalArrears.updated_at).toLocaleDateString("en-GH") : "No historical arrears imported"}</small>
+        </div>
+        <div className="metric-card">
+          <span className="metric-kicker">Total amount due</span>
+          <strong>{money(combinedOutstanding)}</strong>
+          <small>Current-term outstanding plus previous arrears</small>
+        </div>
+      </div>
+      <div className="notice">
+        Previous arrears are included in the total amount due but remain separate from current-term charges. Payments recorded through the current-term payment desk do not automatically reduce these opening arrears.
       </div>
 
       <div className="grid-2">
