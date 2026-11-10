@@ -214,8 +214,9 @@ export function CaScoreMatrix({
       </div>
 
       <p className="muted">
-        Enter marks in the 13 assessment columns. Leave a mark blank until it is available; enter 0 for
-        a genuine zero. Use Absent only when the learner missed that assessment. Raw totals and the
+        Enter marks in the 13 assessment columns. Blank cells are skipped when saving, so you can
+        complete the scorebook gradually and previously saved marks remain unchanged. Enter 0 for a
+        genuine zero. Use Absent only when the learner missed that assessment. Raw totals and the
         converted CA score update automatically.
       </p>
 
