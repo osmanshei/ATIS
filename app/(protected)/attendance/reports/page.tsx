@@ -79,7 +79,10 @@ export default async function AttendanceReportsPage({
           <h1>{profile.role === "teacher" ? "My Attendance Reports" : "Attendance Reports"}</h1>
           <p>Daily class attendance from {from} to {to}.</p>
         </div>
-        <Link className="button secondary" href="/attendance">Back to attendance</Link>
+        <div className="action-row">
+          <Link className="button secondary" href="/attendance">Back to attendance</Link>
+          <Link className="button" href="/attendance/weekly-summary">Weekly summary</Link>
+        </div>
       </div>
 
       <form className="form-card form-grid" method="get">
