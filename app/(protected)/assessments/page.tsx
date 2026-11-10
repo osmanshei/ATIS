@@ -41,7 +41,7 @@ export default async function AssessmentsPage({
           <h1>{canConfigure ? "Assessments & Scores" : "My Assessments"}</h1>
           <p>
             {canConfigure
-              ? "Prepare the term once. ATIS creates the standard scorebooks for all active reportable subjects."
+              ? "Prepare the term once. ATIS creates the standard scorebooks for all active class subjects."
               : "Open an assigned subject to enter continuous assessment and examination marks."}
           </p>
         </div>
@@ -66,7 +66,7 @@ export default async function AssessmentsPage({
           <input type="hidden" name="term_id" value={selectedTerm} />
           <h2 className="section-title">Prepare selected term</h2>
           <p className="muted">
-            One action prepares every active class and reportable subject using the ATIS standard:
+            One action prepares every active class subject using the ATIS standard:
             5 class exercises, 5 homework assignments and 3 class tests (130 raw CA marks converted
             to 40), plus a written and oral examination converted to 60. The correct primary or JHS
             grading scheme is selected automatically. Repeating this action fills missing slots and
