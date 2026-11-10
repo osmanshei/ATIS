@@ -81,18 +81,22 @@ export default async function WeeklyAttendanceSummaryPage({
   }
 
   const termStart = term?.starts_on ? utcDate(term.starts_on) : 0;
+  // Align each summary column to a Monday–Sunday school week.
+  const firstWeekStart = term?.starts_on
+    ? termStart - ((new Date(termStart).getUTCDay() + 6) % 7) * DAY_MS
+    : 0;
   for (const record of records || []) {
     if (record.status !== "present" && record.status !== "late") continue;
     const date = sessionDates.get(record.session_id) as string | undefined;
     if (!date) continue;
-    const weekIndex = Math.floor((utcDate(date) - termStart) / (7 * DAY_MS));
+    const weekIndex = Math.floor((utcDate(date) - firstWeekStart) / (7 * DAY_MS));
     if (weekIndex < 0 || weekIndex >= WEEK_COUNT) continue;
     const values = weeklyTotals.get(record.student_id);
     if (values) values[weekIndex] += 1;
   }
 
   const weeks = Array.from({ length: WEEK_COUNT }, (_, index) => {
-    const start = termStart + index * 7 * DAY_MS;
+    const start = firstWeekStart + index * 7 * DAY_MS;
     const end = start + 6 * DAY_MS;
     return {
       label: "WK" + (index + 1),
