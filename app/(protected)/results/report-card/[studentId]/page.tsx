@@ -22,6 +22,29 @@ function money(value: number | string | null | undefined) {
   return "GHS " + Number(value || 0).toFixed(2);
 }
 
+const teacherCommentOptions = [
+  "Consistently demonstrates outstanding understanding and application of knowledge.",
+  "Shows exceptional enthusiasm for learning and maintains high academic standards.",
+  "A diligent student who works independently and contributes positively in class.",
+  "Outstanding progress this term; keep up the excellent effort.",
+  "Has made steady improvement and continues to show commitment.",
+  "Applies herself/himself well and is developing greater confidence in class.",
+  "Shows good effort and is gradually improving in key areas.",
+  "Maintains satisfactory performance; with more focus, can achieve higher results.",
+  "Capable of better performance with increased concentration and effort.",
+  "Needs to work on consistency and avoid distractions during lessons.",
+  "Shows potential but requires more commitment to assignments and classwork.",
+  "Improvement in time management and study habits will enhance results.",
+  "Polite, respectful, and demonstrates positive behavior towards peers and teachers.",
+  "Shows leadership qualities and contributes meaningfully to group activities.",
+  "Needs to develop greater self-discipline and responsibility in class.",
+  "Displays creativity and curiosity, which enriches classroom discussions.",
+  "A commendable term; continue striving for excellence.",
+  "With consistent effort, greater success is assured.",
+  "Keep building on your strengths and addressing areas of challenge.",
+  "Well done this term; aim higher next term.",
+];
+
 export default async function ReportCardPage({
   params,
   searchParams,
@@ -114,7 +137,7 @@ export default async function ReportCardPage({
       .maybeSingle(),
     supabase
       .from("student_subject_results")
-      .select("student_id,total_score,result_complete")
+      .select("setup_id,student_id,total_score,result_complete")
       .eq("class_id", student.class_id)
       .eq("term_id", termId),
     supabase
@@ -197,6 +220,37 @@ export default async function ReportCardPage({
     }
   }
 
+  // Rank each learner within each subject, matching the Position column in the Excel sheets.
+  const subjectRankGroups = new Map<string, { studentId: string; score: number }[]>();
+  for (const row of classRows || []) {
+    if (!row.result_complete) continue;
+    const list = subjectRankGroups.get(row.setup_id) || [];
+    list.push({ studentId: row.student_id, score: Number(row.total_score || 0) });
+    subjectRankGroups.set(row.setup_id, list);
+  }
+
+  const subjectPositionMap = new Map<string, number>();
+  for (const [setupId, entries] of subjectRankGroups) {
+    entries.sort((a, b) => b.score - a.score);
+    let previousScore: number | null = null;
+    let currentPosition = 0;
+    entries.forEach((entry, index) => {
+      const rounded = Math.round(entry.score * 100) / 100;
+      if (previousScore === null || rounded !== previousScore) {
+        currentPosition = index + 1;
+        previousScore = rounded;
+      }
+      if (entry.studentId === studentId) {
+        subjectPositionMap.set(setupId, currentPosition);
+      }
+    });
+  }
+
+  const subjectRowsWithPositions = (subjectRows || []).map((row: any) => ({
+    ...row,
+    position: subjectPositionMap.get(row.setup_id) || null,
+  }));
+
   const fullName = [student.first_name, student.middle_name, student.last_name]
     .filter(Boolean)
     .join(" ");
@@ -263,23 +317,25 @@ export default async function ReportCardPage({
               <th>CA</th>
               <th>Exam</th>
               <th>Total</th>
+              <th>Position</th>
               <th>Grade</th>
               <th>Interpretation</th>
             </tr>
           </thead>
           <tbody>
-            {(subjectRows || []).map((row: any) => (
+            {subjectRowsWithPositions.map((row: any) => (
               <tr key={row.setup_id}>
                 <td><strong>{row.subject_name}</strong><small>{row.subject_code}</small></td>
                 <td>{row.result_complete ? Number(row.ca_weighted_score || 0).toFixed(1) : "—"}</td>
                 <td>{row.result_complete ? Number(row.exam_weighted_score || 0).toFixed(1) : "—"}</td>
                 <td><strong>{row.result_complete ? Number(row.total_score || 0).toFixed(1) : "Pending"}</strong></td>
+                <td>{row.result_complete && row.position ? row.position : "—"}</td>
                 <td>{row.result_complete ? row.grade || "—" : "—"}</td>
                 <td>{row.result_complete ? row.interpretation || row.grade_remark || "—" : "Score entry incomplete"}</td>
               </tr>
             ))}
             {!subjectRows?.length ? (
-              <tr><td colSpan={6}>No subject results have been configured for this term.</td></tr>
+              <tr><td colSpan={7}>No subject results have been configured for this term.</td></tr>
             ) : null}
           </tbody>
         </table>
@@ -360,7 +416,12 @@ export default async function ReportCardPage({
         </div>
         <div className="field">
           <label>Teacher's remark</label>
-          <textarea name="teacher_remark" rows={2} defaultValue={remarks?.teacher_remark || ""} />
+          <select name="teacher_remark" defaultValue={remarks?.teacher_remark || ""}>
+            <option value="">Select a comment...</option>
+            {teacherCommentOptions.map((comment) => (
+              <option key={comment} value={comment}>{comment}</option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label>Headteacher's remark</label>
