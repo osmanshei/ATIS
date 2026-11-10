@@ -11,19 +11,54 @@ function value(formData: FormData, key: string) {
 export async function initializeTermAssessmentsAction(formData: FormData) {
   const { supabase } = await requireProfile(["admin", "supervisor"]);
   const termId = value(formData, "term_id");
-  const caWeight = Number(value(formData, "ca_weight") || "40");
-  const examWeight = Number(value(formData, "exam_weight") || "60");
 
+  if (!termId) {
+    redirect("/assessments?error=Choose+an+academic+term+first.");
+  }
+
+  // ATIS uses one standard assessment structure across reportable subjects:
+  // CA 40/100, examination 60/100, and 5 exercises + 5 homework + 3 tests.
   const { data, error } = await supabase.rpc("initialize_term_assessments", {
     p_term_id: termId,
-    p_ca_weight: caWeight,
-    p_exam_weight: examWeight,
+    p_ca_weight: 40,
+    p_exam_weight: 60,
   });
 
   if (error) redirect("/assessments?error=" + encodeURIComponent(error.message));
 
+  const { data: setups, error: setupError } = await supabase
+    .from("assessment_setup_summary")
+    .select("id,status")
+    .eq("term_id", termId);
+
+  if (setupError) {
+    redirect("/assessments?error=" + encodeURIComponent(
+      "Term setups were created, but the CA scorebooks could not be prepared: " + setupError.message,
+    ));
+  }
+
+  const readySetups = (setups || []).filter((setup: any) => setup.status !== "locked");
+  const initialized = await Promise.all(
+    readySetups.map((setup: any) =>
+      supabase.rpc("initialize_standard_ca_assessments", { p_setup_id: setup.id }),
+    ),
+  );
+  const failed = initialized.find((result: any) => result.error);
+
+  if (failed?.error) {
+    redirect("/assessments?error=" + encodeURIComponent(
+      "Some subject scorebooks could not be prepared: " + failed.error.message,
+    ));
+  }
+
   revalidatePath("/assessments");
-  redirect("/assessments?ok=" + encodeURIComponent(String(data || 0) + " assessment setups created."));
+  revalidatePath("/results");
+  redirect(
+    "/assessments?ok=" + encodeURIComponent(
+      "Term prepared: " + String(data || 0) + " subject setups and " +
+      String(readySetups.length) + " standard CA scorebooks are ready. Existing marks were preserved.",
+    ),
+  );
 }
 
 export async function saveAssessmentSetupAction(formData: FormData) {
