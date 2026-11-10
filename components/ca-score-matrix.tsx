@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { saveAllCaScoresAction } from "@/app/(protected)/assessments/actions";
 
 type Student = {
@@ -30,8 +30,19 @@ type Score = {
 
 type Cell = { score: string; absent: boolean; remark: string };
 
+const componentOrder = ["class_exercise", "homework", "class_test"];
+const componentLabels: Record<string, string> = {
+  class_exercise: "Class Exercises",
+  homework: "Homework",
+  class_test: "Class Tests",
+};
+
 function cellKey(assessmentId: string, studentId: string) {
   return assessmentId + ":" + studentId;
+}
+
+function studentName(student: Student) {
+  return [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
 }
 
 export function CaScoreMatrix({
@@ -64,14 +75,42 @@ export function CaScoreMatrix({
   }, [initialScores]);
 
   const [cells, setCells] = useState<Record<string, Cell>>(initialCells);
-  const rawMaximum = assessments.reduce((sum, assessment) => sum + Number(assessment.max_mark || 0), 0);
+
+  const orderedAssessments = useMemo(
+    () =>
+      [...assessments].sort((a, b) => {
+        const aOrder = componentOrder.indexOf(a.component);
+        const bOrder = componentOrder.indexOf(b.component);
+        return (aOrder < 0 ? 99 : aOrder) - (bOrder < 0 ? 99 : bOrder) ||
+          a.assessment_no - b.assessment_no;
+      }),
+    [assessments],
+  );
+
+  const groups = useMemo(
+    () =>
+      componentOrder
+        .map((component) => ({
+          component,
+          label: componentLabels[component],
+          assessments: orderedAssessments.filter((assessment) => assessment.component === component),
+        }))
+        .filter((group) => group.assessments.length > 0),
+    [orderedAssessments],
+  );
+
+  const rawMaximum = orderedAssessments.reduce(
+    (sum, assessment) => sum + Number(assessment.max_mark || 0),
+    0,
+  );
 
   const summary = useMemo(() => {
     return students.map((student) => {
       let total = 0;
-      let complete = assessments.length > 0;
+      let complete = orderedAssessments.length > 0;
       let entered = 0;
-      for (const assessment of assessments) {
+
+      for (const assessment of orderedAssessments) {
         const cell = cells[cellKey(assessment.id, student.id)] || { score: "", absent: false, remark: "" };
         if (cell.absent) {
           entered += 1;
@@ -89,6 +128,7 @@ export function CaScoreMatrix({
         total += value;
         entered += 1;
       }
+
       return {
         studentId: student.id,
         total,
@@ -97,9 +137,11 @@ export function CaScoreMatrix({
         converted: complete && caMaxMark > 0 ? (total / caMaxMark) * caWeight : null,
       };
     });
-  }, [students, assessments, cells, caMaxMark, caWeight]);
+  }, [students, orderedAssessments, cells, caMaxMark, caWeight]);
 
-  const records = assessments.map((assessment) => ({
+  const summaryByStudent = new Map(summary.map((row) => [row.studentId, row]));
+
+  const records = orderedAssessments.map((assessment) => ({
     assessment_id: assessment.id,
     records: students.map((student) => {
       const cell = cells[cellKey(assessment.id, student.id)] || { score: "", absent: false, remark: "" };
@@ -123,6 +165,40 @@ export function CaScoreMatrix({
     });
   }
 
+  function scoreInput(student: Student, assessment: Assessment) {
+    const cell = cells[cellKey(assessment.id, student.id)] || { score: "", absent: false, remark: "" };
+    const name = studentName(student);
+
+    return (
+      <>
+        <input
+          aria-label={name + " " + assessment.assessment_name + " score"}
+          type="number"
+          min="0"
+          max={assessment.max_mark}
+          step="0.01"
+          value={cell.score}
+          disabled={locked || cell.absent}
+          onChange={(event) => updateCell(assessment.id, student.id, { score: event.target.value })}
+        />
+        <label className="ca-absent-toggle">
+          <input
+            type="checkbox"
+            checked={cell.absent}
+            disabled={locked}
+            onChange={(event) =>
+              updateCell(assessment.id, student.id, {
+                absent: event.target.checked,
+                score: event.target.checked ? "" : cell.score,
+              })
+            }
+          />
+          Absent
+        </label>
+      </>
+    );
+  }
+
   return (
     <form action={saveAllCaScoresAction}>
       <input type="hidden" name="setup_id" value={setupId} />
@@ -131,102 +207,110 @@ export function CaScoreMatrix({
       <div className="score-toolbar">
         <div>
           <span className="metric-kicker">CA scorebook</span>
-          <strong>{assessments.length} assessments · {students.length} students</strong>
-          <small>Raw maximum: {rawMaximum} · Configured CA maximum: {caMaxMark} · CA contribution: {caWeight} marks</small>
+          <strong>{orderedAssessments.length} assessments · {students.length} students</strong>
+          <small>Raw maximum: {rawMaximum} · CA maximum: {caMaxMark} · CA contribution: {caWeight} marks</small>
         </div>
-        {!locked ? <button className="button" type="submit" disabled={!assessments.length}>Save all CA scores</button> : null}
+        {!locked ? <button className="button" type="submit" disabled={!orderedAssessments.length}>Save all CA scores</button> : null}
       </div>
 
       <p className="muted">
-        Enter a score in each assessment column. Leave a score blank if it has not been entered yet;
-        enter 0 for a genuine zero. Tick Absent only when the learner was absent. The CA total converts
-        automatically to the configured CA weight once all assessment cells are complete.
+        Enter marks in the 13 assessment columns. Leave a mark blank until it is available; enter 0 for
+        a genuine zero. Use Absent only when the learner missed that assessment. Raw totals and the
+        converted CA score update automatically.
       </p>
 
-      {!assessments.length ? (
-        <div className="notice">Create the standard 13 CA slots on the subject page before entering scores.</div>
+      {!orderedAssessments.length ? (
+        <div className="notice">The standard CA scorebook has not been prepared for this subject. Management can prepare all subjects together from the Assessments page.</div>
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th rowSpan={2}>#</th>
-                <th rowSpan={2}>Student</th>
-                {assessments.map((assessment) => (
-                  <th key={assessment.id} colSpan={2}>
-                    {assessment.assessment_name}
-                    <br />
-                    <small>{assessment.max_mark} marks</small>
-                  </th>
-                ))}
-                <th rowSpan={2}>Raw total</th>
-                <th rowSpan={2}>CA / {caWeight}</th>
-              </tr>
-              <tr>
-                {assessments.map((assessment) => (
-                  <Fragment key={assessment.id}>
-                    <th>Score / Absent</th>
-                    <th>Remark</th>
-                  </Fragment>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {students.map((student, index) => {
-                const fullName = [student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ");
-                const row = summary.find((item) => item.studentId === student.id);
-                return (
-                  <tr key={student.id}>
-                    <td>{index + 1}</td>
-                    <td><strong>{fullName}</strong><br /><small>{student.admission_number || "No admission number"}</small></td>
-                    {assessments.map((assessment) => {
-                      const cell = cells[cellKey(assessment.id, student.id)] || { score: "", absent: false, remark: "" };
-                      return (
-                        <Fragment key={assessment.id}>
-                          <td style={{ minWidth: 120 }}>
-                            <input
-                              aria-label={fullName + " " + assessment.assessment_name + " score"}
-                              type="number"
-                              min="0"
-                              max={assessment.max_mark}
-                              step="0.01"
-                              value={cell.score}
-                              disabled={locked || cell.absent}
-                              onChange={(event) => updateCell(assessment.id, student.id, { score: event.target.value })}
-                              style={{ width: 88 }}
-                            />
-                            <label style={{ display: "block", fontSize: 12 }}>
-                              <input
-                                type="checkbox"
-                                checked={cell.absent}
-                                disabled={locked}
-                                onChange={(event) => updateCell(assessment.id, student.id, { absent: event.target.checked, score: "" })}
-                              /> Absent
-                            </label>
-                          </td>
-                          <td style={{ minWidth: 140 }}>
-                            <input
-                              aria-label={fullName + " " + assessment.assessment_name + " remark"}
-                              value={cell.remark}
-                              disabled={locked}
-                              placeholder="Optional"
-                              onChange={(event) => updateCell(assessment.id, student.id, { remark: event.target.value })}
-                              style={{ width: 120 }}
-                            />
-                          </td>
-                        </Fragment>
-                      );
-                    })}
-                    <td>{row?.complete ? row.total.toFixed(2) : row?.entered + "/" + assessments.length}</td>
-                    <td><strong>{row?.converted === null || row?.converted === undefined ? "Incomplete" : row.converted.toFixed(2)}</strong></td>
-                  </tr>
-                );
-              })}
-              {!students.length ? <tr><td colSpan={assessments.length * 2 + 4}>No active students found in this class.</td></tr> : null}
-            </tbody>
-          </table>
-        </div>
+        <>
+          <div className="table-wrap ca-scorebook-desktop">
+            <table>
+              <thead>
+                <tr>
+                  <th rowSpan={2}>#</th>
+                  <th rowSpan={2}>Student</th>
+                  {groups.map((group) => (
+                    <th key={group.component} colSpan={group.assessments.length}>{group.label}</th>
+                  ))}
+                  <th rowSpan={2}>Raw total</th>
+                  <th rowSpan={2}>CA / {caWeight}</th>
+                </tr>
+                <tr>
+                  {orderedAssessments.map((assessment) => (
+                    <th key={assessment.id}>
+                      {assessment.assessment_name}
+                      <br />
+                      <small>/{assessment.max_mark}</small>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {students.map((student, index) => {
+                  const fullName = studentName(student);
+                  const row = summaryByStudent.get(student.id);
+                  return (
+                    <tr key={student.id}>
+                      <td>{index + 1}</td>
+                      <td><strong>{fullName}</strong><br /><small>{student.admission_number || "No admission number"}</small></td>
+                      {orderedAssessments.map((assessment) => (
+                        <td className="ca-score-cell" key={assessment.id}>
+                          {scoreInput(student, assessment)}
+                        </td>
+                      ))}
+                      <td>{row?.complete ? row.total.toFixed(2) : row?.entered + "/" + orderedAssessments.length}</td>
+                      <td><strong>{row?.converted === null || row?.converted === undefined ? "Incomplete" : row.converted.toFixed(2)}</strong></td>
+                    </tr>
+                  );
+                })}
+                {!students.length ? <tr><td colSpan={orderedAssessments.length + 4}>No active students found in this class.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="ca-scorebook-mobile">
+            {students.map((student, index) => {
+              const fullName = studentName(student);
+              const row = summaryByStudent.get(student.id);
+              return (
+                <details className="ca-mobile-student" key={student.id}>
+                  <summary>
+                    <span>
+                      <strong>{index + 1}. {fullName}</strong>
+                      <small>{student.admission_number || "No admission number"}</small>
+                    </span>
+                    <span className="ca-mobile-total">
+                      <strong>{row?.converted === null || row?.converted === undefined ? "Incomplete" : row.converted.toFixed(2) + " / " + caWeight}</strong>
+                      <small>{row?.complete ? "CA score" : (row?.entered || 0) + "/" + orderedAssessments.length + " entered"}</small>
+                    </span>
+                  </summary>
+                  <div className="ca-mobile-student-body">
+                    {groups.map((group) => (
+                      <section className="ca-mobile-group" key={group.component}>
+                        <h3>{group.label}</h3>
+                        <div className="ca-mobile-fields">
+                          {group.assessments.map((assessment) => (
+                            <div className="ca-mobile-field" key={assessment.id}>
+                              <label>{assessment.assessment_name} / {assessment.max_mark}</label>
+                              {scoreInput(student, assessment)}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                    <div className="ca-mobile-raw-total">
+                      <span>Raw total</span>
+                      <strong>{row?.complete ? row.total.toFixed(2) : "Incomplete"}</strong>
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
+            {!students.length ? <div className="empty-state">No active students found in this class.</div> : null}
+          </div>
+        </>
       )}
+
       {locked ? <div className="notice">This subject setup is locked. Scores cannot be changed.</div> : null}
     </form>
   );
