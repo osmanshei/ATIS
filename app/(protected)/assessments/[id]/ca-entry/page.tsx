@@ -59,7 +59,7 @@ export default async function CaScorebookPage({
           </p>
         </div>
         <div className="action-row">
-          <Link className="button secondary" href={"/assessments/" + id}>Individual CA Slots</Link>
+          <Link className="button secondary" href={"/assessments/" + id}>Back to Subject</Link>
           <Link className="button secondary" href="/assessments">All Subjects</Link>
         </div>
       </div>

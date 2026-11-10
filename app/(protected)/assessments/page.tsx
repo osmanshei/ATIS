@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import {
-  initializeTermAssessmentsAction,
-  saveAssessmentSetupAction,
-} from "./actions";
+import { initializeTermAssessmentsAction } from "./actions";
 
 export default async function AssessmentsPage({
   searchParams,
@@ -25,34 +22,14 @@ export default async function AssessmentsPage({
     terms?.[0]?.id ||
     "";
 
-  const setupQuery = supabase
+  const { data: setupRows } = await supabase
     .from("assessment_setup_summary")
     .select("*")
     .eq("term_id", selectedTerm)
     .order("class_name")
     .order("subject_name");
 
-  const [setupsResult, classSubjectsResult, schemesResult] = canConfigure
-    ? await Promise.all([
-        setupQuery,
-        supabase
-          .from("class_subject_summary")
-          .select("id,class_name,section,subject_name,subject_code,is_active,include_on_report")
-          .eq("is_active", true)
-          .eq("include_on_report", true)
-          .order("class_name")
-          .order("subject_name"),
-        supabase
-          .from("grade_schemes")
-          .select("id,scheme_name,level")
-          .eq("is_active", true)
-          .order("level"),
-      ])
-    : [await setupQuery, { data: [] }, { data: [] }];
-
-  const setups = (setupsResult.data || []) as any[];
-  const classSubjects = (classSubjectsResult.data || []) as any[];
-  const schemes = (schemesResult.data || []) as any[];
+  const setups = (setupRows || []) as any[];
   const classCount = new Set(setups.map((s) => s.class_id)).size;
   const subjectCount = new Set(setups.map((s) => s.subject_id)).size;
 
@@ -64,8 +41,8 @@ export default async function AssessmentsPage({
           <h1>{canConfigure ? "Assessments & Scores" : "My Assessments"}</h1>
           <p>
             {canConfigure
-              ? "Configure CA and examination weighting, the raw CA maximum for each class-subject, and prepare results."
-              : "Enter scores only for the classes and subjects assigned to you."}
+              ? "Prepare the term once. ATIS creates the standard scorebooks for all active class subjects."
+              : "Open an assigned subject to enter continuous assessment and examination marks."}
           </p>
         </div>
         <Link className="button hero-button" href="/results">Results & Report Cards</Link>
@@ -84,69 +61,26 @@ export default async function AssessmentsPage({
         <button className="button secondary compact" type="submit">View</button>
       </form>
 
-      <div className="teacher-summary-grid">
-        <div className="metric-card"><span className="metric-kicker">Subject setups</span><strong>{setups.length}</strong><small>Available in selected term</small></div>
-        <div className="metric-card"><span className="metric-kicker">Classes</span><strong>{classCount}</strong><small>Classes represented</small></div>
-        <div className="metric-card"><span className="metric-kicker">Subjects</span><strong>{subjectCount}</strong><small>Distinct subjects represented</small></div>
-      </div>
-
       {canConfigure && selectedTerm ? (
-        <div className="grid-2">
-          <form className="form-card" action={initializeTermAssessmentsAction}>
-            <h2 className="section-title">Initialize the term</h2>
-            <p className="muted">
-              Create missing assessment setups for every active class-subject at once.
-            </p>
-            <input type="hidden" name="term_id" value={selectedTerm} />
-            <div className="form-grid">
-              <div className="field"><label>CA weight (%)</label><input name="ca_weight" type="number" min="0" max="100" defaultValue="40" /></div>
-              <div className="field"><label>Exam weight (%)</label><input name="exam_weight" type="number" min="0" max="100" defaultValue="60" /></div>
-            </div>
-            <button className="button" type="submit">Initialize Current Term</button>
-          </form>
-
-          <form className="form-card" action={saveAssessmentSetupAction}>
-            <h2 className="section-title">Configure one subject</h2>
-            <input type="hidden" name="term_id" value={selectedTerm} />
-            <div className="field">
-              <label>Class / Subject</label>
-              <select name="class_subject_id" required>
-                <option value="">Choose...</option>
-                {classSubjects.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.class_name}{x.section ? " / " + x.section : ""} — {x.subject_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="form-grid">
-              <div className="field"><label>CA weight (%)</label><input name="ca_weight" type="number" defaultValue="40" min="0" max="100" /></div>
-              <div className="field"><label>Exam weight (%)</label><input name="exam_weight" type="number" defaultValue="60" min="0" max="100" /></div>
-              <div className="field">
-                <label>Raw CA maximum mark</label>
-                <input name="ca_max_mark" type="number" min="1" step="0.01" defaultValue="130" required />
-                <small className="muted">Set per class-subject, e.g. 130 or 160. CA is scaled to the configured CA weight.</small>
-              </div>
-            </div>
-            <div className="field">
-              <label>Grade scheme</label>
-              <select name="grade_scheme_id" required>
-                <option value="">Choose...</option>
-                {schemes.map((g) => <option key={g.id} value={g.id}>{g.scheme_name} · {g.level}</option>)}
-              </select>
-            </div>
-            <div className="field">
-              <label>Status</label>
-              <select name="status" defaultValue="active">
-                <option value="active">Active</option>
-                <option value="draft">Draft</option>
-                <option value="locked">Locked</option>
-              </select>
-            </div>
-            <button className="button" type="submit">Save setup</button>
-          </form>
-        </div>
+        <form className="form-card" action={initializeTermAssessmentsAction}>
+          <input type="hidden" name="term_id" value={selectedTerm} />
+          <h2 className="section-title">Prepare selected term</h2>
+          <p className="muted">
+            One action prepares every active class subject using the ATIS standard:
+            5 class exercises, 5 homework assignments and 3 class tests (130 raw CA marks converted
+            to 40), plus a written and oral examination converted to 60. The correct primary or JHS
+            grading scheme is selected automatically. Repeating this action fills missing slots and
+            preserves marks already entered.
+          </p>
+          <button className="button" type="submit">Prepare term assessments</button>
+        </form>
       ) : null}
+
+      <div className="teacher-summary-grid">
+        <div className="metric-card"><span className="metric-kicker">Subject scorebooks</span><strong>{setups.length}</strong><small>Available in selected term</small></div>
+        <div className="metric-card"><span className="metric-kicker">Classes</span><strong>{classCount}</strong><small>Classes represented</small></div>
+        <div className="metric-card"><span className="metric-kicker">Subjects</span><strong>{subjectCount}</strong><small>Reportable subjects represented</small></div>
+      </div>
 
       <div className="assessment-grid">
         {setups.map((s) => (
@@ -162,14 +96,18 @@ export default async function AssessmentsPage({
               <span>CA <strong>{s.ca_weight}%</strong></span>
               <span>Exam <strong>{s.exam_weight}%</strong></span>
             </div>
-            <small>Raw CA maximum: {s.ca_max_mark} · {s.scheme_name}</small>
+            <small>Raw CA maximum: {s.ca_max_mark ?? 130} · {s.scheme_name}</small>
             <Link className="button compact" href={"/assessments/" + s.id}>Open subject</Link>
           </article>
         ))}
         {!setups.length ? (
           <div className="empty-state">
-            <strong>No assessment setups found</strong>
-            <p>{canConfigure ? "Initialize the selected term to create them." : "Management has not configured your assigned subjects for this term yet."}</p>
+            <strong>No subject scorebooks found</strong>
+            <p>
+              {canConfigure
+                ? "Prepare the selected term to create all standard subject scorebooks."
+                : "Management has not prepared your assigned subjects for this term yet."}
+            </p>
           </div>
         ) : null}
       </div>
