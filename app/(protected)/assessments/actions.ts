@@ -38,17 +38,20 @@ export async function initializeTermAssessmentsAction(formData: FormData) {
   }
 
   const readySetups = (setups || []).filter((setup: any) => setup.status !== "locked");
-  const initialized = await Promise.all(
-    readySetups.map((setup: any) =>
-      supabase.rpc("initialize_standard_ca_assessments", { p_setup_id: setup.id }),
-    ),
-  );
-  const failed = initialized.find((result: any) => result.error);
+  for (let index = 0; index < readySetups.length; index += 5) {
+    const batch = readySetups.slice(index, index + 5);
+    const initialized = await Promise.all(
+      batch.map((setup: any) =>
+        supabase.rpc("initialize_standard_ca_assessments", { p_setup_id: setup.id }),
+      ),
+    );
+    const failed = initialized.find((result: any) => result.error);
 
-  if (failed?.error) {
-    redirect("/assessments?error=" + encodeURIComponent(
-      "Some subject scorebooks could not be prepared: " + failed.error.message,
-    ));
+    if (failed?.error) {
+      redirect("/assessments?error=" + encodeURIComponent(
+        "Some subject scorebooks could not be prepared: " + failed.error.message,
+      ));
+    }
   }
 
   revalidatePath("/assessments");
