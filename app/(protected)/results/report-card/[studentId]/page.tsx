@@ -102,7 +102,6 @@ export default async function ReportCardPage({
 
   const [
     { data: subjectRows },
-    { data: setups },
     { data: remarks },
     { data: publication },
     { data: classRows },
@@ -117,11 +116,6 @@ export default async function ReportCardPage({
       .eq("student_id", studentId)
       .eq("term_id", termId)
       .order("subject_name"),
-    supabase
-      .from("assessment_setup_summary")
-      .select("id,subject_id")
-      .eq("class_id", student.class_id)
-      .eq("term_id", termId),
     supabase
       .from("report_remarks")
       .select("teacher_remark,headteacher_remark,conduct,next_term_begins")
@@ -178,7 +172,7 @@ export default async function ReportCardPage({
     ? Math.round(((attendance.present + attendance.late) / attendance.total) * 1000) / 10
     : 0;
 
-  const subjectCount = setups?.length || 0;
+  const subjectCount = subjectRows?.length || 0;
   const completeCount = (subjectRows || []).filter((r: any) => r.result_complete).length;
   const allComplete = subjectCount > 0 && completeCount === subjectCount;
   const average = subjectRows?.length
@@ -418,6 +412,9 @@ export default async function ReportCardPage({
           <label>Teacher's remark</label>
           <select name="teacher_remark" defaultValue={remarks?.teacher_remark || ""}>
             <option value="">Select a comment...</option>
+            {remarks?.teacher_remark && !teacherCommentOptions.includes(remarks.teacher_remark) ? (
+              <option value={remarks.teacher_remark}>{remarks.teacher_remark}</option>
+            ) : null}
             {teacherCommentOptions.map((comment) => (
               <option key={comment} value={comment}>{comment}</option>
             ))}
