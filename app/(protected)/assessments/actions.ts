@@ -219,6 +219,7 @@ export async function saveAllCaScoresAction(formData: FormData) {
 
   const byId = new Map<string, any>((availableAssessments || []).map((assessment: any) => [String(assessment.id), assessment] as [string, any]));
   const submittedIds = new Set<string>();
+  const groupsToSave: any[] = [];
 
   for (const item of groups as any[]) {
     const assessmentId = String(item?.assessment_id || "");
@@ -238,8 +239,23 @@ export async function saveAllCaScoresAction(formData: FormData) {
     }
   }
 
-  let savedGroups = 0;
   for (const item of groups as any[]) {
+    // Empty cells are not score submissions. Preserve existing marks and save only
+    // actual scores or explicit absences so teachers can complete the register gradually.
+    const enteredRecords = item.records.filter((record: any) =>
+      Boolean(record?.is_absent) ||
+      String(record?.raw_score ?? "").trim() !== ""
+    );
+    if (enteredRecords.length) groupsToSave.push({ ...item, records: enteredRecords });
+  }
+
+  const totalEntered = groupsToSave.reduce((sum, item) => sum + item.records.length, 0);
+  if (!totalEntered) {
+    redirect("/assessments/" + setupId + "/ca-entry?error=Enter+at+least+one+score+or+mark+a+student+absent+before+saving.");
+  }
+
+  let savedGroups = 0;
+  for (const item of groupsToSave) {
     const { error } = await supabase.rpc("save_ca_scores", {
       p_assessment_id: String(item.assessment_id),
       p_records: item.records,
@@ -258,6 +274,6 @@ export async function saveAllCaScoresAction(formData: FormData) {
   revalidatePath("/results");
   redirect(
     "/assessments/" + setupId + "/ca-entry?ok=" +
-      encodeURIComponent("Saved CA scores for " + savedGroups + " assessment columns."),
+      encodeURIComponent("Saved " + totalEntered + " student marks across " + savedGroups + " assessment columns. Blank cells were left unchanged."),
   );
 }
