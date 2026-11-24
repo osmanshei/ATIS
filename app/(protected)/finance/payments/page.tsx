@@ -21,7 +21,7 @@ export default async function PaymentsPage({
     error?: string;
   }>;
 }) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
   const params = await searchParams;
 
   const [{ data: terms }, { data: classes }] = await Promise.all([
@@ -135,7 +135,9 @@ export default async function PaymentsPage({
           <h1>Record Payment</h1>
           <p>Find a learner quickly, post a payment and generate an ATIS receipt automatically.</p>
         </div>
-        <Link className="button secondary" href={"/finance?term=" + termId}>Back to finance</Link>
+        <Link className="button secondary" href={profile.role === "clerk" ? "/dashboard" : "/finance?term=" + termId}>
+          {profile.role === "clerk" ? "Back to dashboard" : "Back to finance"}
+        </Link>
       </div>
 
       {params.error ? <div className="notice error">{params.error}</div> : null}
@@ -312,7 +314,9 @@ export default async function PaymentsPage({
       <section className="panel-section">
         <div className="section-heading">
           <div><div className="eyebrow">Recent</div><h2>Payment activity</h2></div>
-          <Link className="text-link" href={"/finance/balances?term=" + termId}>View balances →</Link>
+          {profile.role !== "clerk" ? (
+            <Link className="text-link" href={"/finance/balances?term=" + termId}>View balances →</Link>
+          ) : null}
         </div>
         <div className="table-wrap">
           <table>
