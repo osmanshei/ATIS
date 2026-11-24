@@ -35,6 +35,7 @@ function NavIcon({ code }: { code: string }) {
     AS: <svg {...common}><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h5M8 16h3"/><path d="m15 15 2 2 3-4"/></svg>,
     RS: <svg {...common}><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>,
     FI: <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5c-.8-.8-2-1.2-3.4-1.2-1.9 0-3.1.9-3.1 2.2 0 1.4 1.2 1.9 3.2 2.3 2 .4 3.1.9 3.1 2.4 0 1.4-1.3 2.5-3.4 2.5-1.5 0-2.8-.5-3.7-1.4M12 5.5v13"/></svg>,
+    FP: <svg {...common}><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h5"/><circle cx="17" cy="14" r="1"/></svg>,
     PR: <svg {...common}><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>,
     SA: <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/><path d="M7 4 5 6M17 4l2 2"/></svg>,
     FD: <svg {...common}><path d="M5 3v7c0 2 1.5 3 3 3V3M8 13v8M14 3v18M14 3c4 1 5 4 5 7s-1 5-5 6"/></svg>,
