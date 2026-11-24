@@ -34,7 +34,7 @@ export async function saveFeeItemAction(formData: FormData) {
 }
 
 export async function recordFeePaymentAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
+  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
 
   const studentId = value(formData, "student_id");
   const termId = value(formData, "term_id");
