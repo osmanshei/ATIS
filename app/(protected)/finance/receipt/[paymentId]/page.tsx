@@ -18,7 +18,7 @@ export default async function FeeReceiptPage({
 }) {
   const { paymentId } = await params;
   const query = await searchParams;
-  const { supabase, profile } = await requireProfile(["admin", "supervisor", "accountant"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
 
   const [{ data: payment }, { data: school }] = await Promise.all([
     supabase.from("fee_payment_summary").select("*").eq("id", paymentId).single(),
@@ -56,8 +56,15 @@ export default async function FeeReceiptPage({
   return (
     <>
       <div className="report-toolbar no-print">
-        <Link className="button secondary" href={"/finance/student/" + payment.student_id + "?term=" + payment.term_id}>
-          Back to statement
+        <Link
+          className="button secondary"
+          href={
+            profile.role === "clerk"
+              ? "/finance/payments?term=" + payment.term_id + "&student=" + payment.student_id
+              : "/finance/student/" + payment.student_id + "?term=" + payment.term_id
+          }
+        >
+          {profile.role === "clerk" ? "Back to payment desk" : "Back to statement"}
         </Link>
         <PrintButton label="Print receipt" />
       </div>
@@ -118,7 +125,7 @@ export default async function FeeReceiptPage({
         </footer>
       </div>
 
-      {!payment.is_reversed ? (
+      {profile.role !== "clerk" && !payment.is_reversed ? (
         <form className="form-card no-print receipt-reversal-form" action={reverseFeePaymentAction}>
           <h2 className="section-title">Reverse this payment</h2>
           <p className="muted">Use reversal only for an incorrect payment. The original receipt remains in the audit trail.</p>
