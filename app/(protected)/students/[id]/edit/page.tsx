@@ -136,7 +136,9 @@ export default async function EditStudentPage({
           <div className="field"><label>Nationality</label><input name="nationality" defaultValue={student.nationality || "Ghanaian"} /></div>
           <div className="field"><label>Other house / group (optional)</label><input name="house_name" defaultValue={student.house_name || ""} /></div>
           <div className="field"><label>Admission type</label><input name="admission_type" defaultValue={student.admission_type || ""} /></div>
-          <div className="field"><label>Fee concession (%)</label><input name="concession_percent" type="number" min="0" max="100" step="0.01" defaultValue={student.concession_percent ?? 0} /></div>
+          {["admin", "supervisor"].includes(profile.role) ? (
+            <div className="field"><label>Fee concession (%)</label><input name="concession_percent" type="number" min="0" max="100" step="0.01" defaultValue={student.concession_percent ?? 0} /></div>
+          ) : null}
           <div className="field"><label>Transport route</label><input name="transport_route" defaultValue={student.transport_route || ""} /></div>
           <div className="field">
             <label>Replace student photo</label>
