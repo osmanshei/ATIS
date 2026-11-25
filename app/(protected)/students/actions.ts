@@ -44,7 +44,9 @@ export async function updateStudentAction(formData: FormData) {
     special_needs: value(formData, "special_needs"),
     house_name: value(formData, "house_name"),
     admission_type: value(formData, "admission_type"),
-    concession_percent: value(formData, "concession_percent") || "0",
+    ...(["admin", "supervisor"].includes(profile.role)
+      ? { concession_percent: value(formData, "concession_percent") || "0" }
+      : {}),
     transport_required: formData.get("transport_required") === "on",
     transport_route: value(formData, "transport_route"),
     status: value(formData, "status") || "active",

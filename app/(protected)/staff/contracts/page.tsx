@@ -11,7 +11,7 @@ export default async function StaffContractsPage({
 }: {
   searchParams: Promise<{ ok?: string; error?: string }>;
 }) {
-  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor"]);
   const params = await searchParams;
   const canManage = profile.role === "admin";
 
