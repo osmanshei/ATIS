@@ -166,7 +166,7 @@ export default async function StudentsPage({
                 <td>{r.gender || "—"}</td>
                 <td>{r.date_of_birth || "—"}</td>
                 <td>{r.class_name || "Unassigned"}</td>
-                <td>{r.class_section ? <span className="tag">Group {r.classes.section}</span> : <span className="muted">—</span>}</td>
+                <td>{r.class_section ? <span className="tag">Group {r.class_section}</span> : <span className="muted">—</span>}</td>
                 <td><span className="tag">{r.student_section || "Not assigned"}</span></td>
                 <td><span className="tag gray">{r.status}</span></td>
                 <td>
