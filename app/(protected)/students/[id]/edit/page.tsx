@@ -15,8 +15,11 @@ export default async function EditStudentPage({
   const query = await searchParams;
   const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
 
+  const studentQuery = profile.role === "clerk"
+    ? supabase.from("student_role_directory").select("*").eq("id", id).single()
+    : supabase.from("students").select("*").eq("id", id).single();
   const [{ data: student }, { data: classes }] = await Promise.all([
-    supabase.from("students").select("*").eq("id", id).single(),
+    studentQuery,
     supabase
       .from("classes")
       .select("id,class_name,section,grade_level,is_active")
@@ -150,10 +153,10 @@ export default async function EditStudentPage({
 
         <h2 className="section-title">Health & support</h2>
         <div className="form-grid">
-          <div className="field"><label>Medical notes</label><textarea name="medical_notes" rows={2} defaultValue={student.medical_notes || ""} /></div>
+          {profile.role !== "clerk" ? <div className="field"><label>Medical notes</label><textarea name="medical_notes" rows={2} defaultValue={student.medical_notes || ""} /></div> : null}
           <div className="field"><label>Dietary requirements</label><textarea name="dietary_requirements" rows={2} defaultValue={student.dietary_requirements || ""} /></div>
-          <div className="field"><label>Allergies</label><textarea name="allergies" rows={2} defaultValue={student.allergies || ""} /></div>
-          <div className="field"><label>Special needs</label><textarea name="special_needs" rows={2} defaultValue={student.special_needs || ""} /></div>
+          {profile.role !== "clerk" ? <div className="field"><label>Allergies</label><textarea name="allergies" rows={2} defaultValue={student.allergies || ""} /></div> : null}
+          {profile.role !== "clerk" ? <div className="field"><label>Special needs</label><textarea name="special_needs" rows={2} defaultValue={student.special_needs || ""} /></div> : null}
         </div>
 
         <div className="action-row">

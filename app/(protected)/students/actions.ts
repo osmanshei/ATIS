@@ -38,10 +38,14 @@ export async function updateStudentAction(formData: FormData) {
     city: value(formData, "city"),
     region: value(formData, "region"),
     nationality: value(formData, "nationality") || "Ghanaian",
-    medical_notes: value(formData, "medical_notes"),
+    ...(profile.role === "admin" || profile.role === "supervisor"
+      ? {
+          medical_notes: value(formData, "medical_notes"),
+          allergies: value(formData, "allergies"),
+          special_needs: value(formData, "special_needs"),
+        }
+      : {}),
     dietary_requirements: value(formData, "dietary_requirements"),
-    allergies: value(formData, "allergies"),
-    special_needs: value(formData, "special_needs"),
     house_name: value(formData, "house_name"),
     admission_type: value(formData, "admission_type"),
     ...(["admin", "supervisor"].includes(profile.role)
@@ -170,7 +174,7 @@ export async function createStudentAction(formData: FormData) {
   }
 
   const { data: createdStudent } = await supabase
-    .from("students")
+    .from("student_role_directory")
     .select("id")
     .eq("school_id", profile.school_id)
     .eq("admission_number", admissionNumber)
@@ -210,7 +214,7 @@ export async function removeStudentPhotoAction(formData: FormData) {
   const studentId = value(formData, "student_id");
 
   const { data: student, error } = await supabase
-    .from("students")
+    .from("student_role_directory")
     .select("id,photo_url")
     .eq("id", studentId)
     .eq("school_id", profile.school_id)

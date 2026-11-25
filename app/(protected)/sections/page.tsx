@@ -25,7 +25,7 @@ export default async function SectionsPage({
       .eq("school_id", profile.school_id)
       .order("section_name"),
     supabase
-      .from("staff")
+      .from("staff_role_directory")
       .select("id,full_name,employee_code")
       .eq("school_id", profile.school_id)
       .eq("role", "teacher")
@@ -43,7 +43,7 @@ export default async function SectionsPage({
 
   const counts = await Promise.all(SECTIONS.map(async (sectionName) => {
     const { count } = await supabase
-      .from("students")
+      .from("student_role_directory")
       .select("id", { count: "exact", head: true })
       .eq("school_id", profile.school_id)
       .eq("student_section", sectionName)

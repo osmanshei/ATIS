@@ -48,13 +48,13 @@ export default async function StudentsPage({
     .order("class_name");
 
   let countQuery = supabase
-    .from("students")
+    .from("student_role_directory")
     .select("id", { count: "exact", head: true });
 
   let rowsQuery = supabase
-    .from("students")
+    .from("student_role_directory")
     .select(
-      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,status,class_id,student_section,classes(class_name,section)",
+      "id,admission_number,first_name,middle_name,last_name,gender,date_of_birth,status,class_id,student_section,class_name,class_section",
     );
 
   if (classId) {
@@ -165,8 +165,8 @@ export default async function StudentsPage({
                 <td><strong>{[r.first_name, r.middle_name, r.last_name].filter(Boolean).join(" ")}</strong></td>
                 <td>{r.gender || "—"}</td>
                 <td>{r.date_of_birth || "—"}</td>
-                <td>{r.classes ? r.classes.class_name : "Unassigned"}</td>
-                <td>{r.classes?.section ? <span className="tag">Group {r.classes.section}</span> : <span className="muted">—</span>}</td>
+                <td>{r.class_name || "Unassigned"}</td>
+                <td>{r.class_section ? <span className="tag">Group {r.classes.section}</span> : <span className="muted">—</span>}</td>
                 <td><span className="tag">{r.student_section || "Not assigned"}</span></td>
                 <td><span className="tag gray">{r.status}</span></td>
                 <td>

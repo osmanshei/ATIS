@@ -36,13 +36,15 @@ export async function uploadStudentPhoto(
 
   if (uploadError) throw uploadError;
 
-  const { error: updateError } = await supabase
-    .from("students")
-    .update({ photo_url: path })
-    .eq("id", args.studentId)
-    .eq("school_id", args.schoolId);
+  const { error: updateError } = await supabase.rpc("update_student_photo", {
+    p_student_id: args.studentId,
+    p_photo_path: path,
+  });
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    await supabase.storage.from("student-photos").remove([path]);
+    throw updateError;
+  }
   return path;
 }
 
@@ -50,20 +52,18 @@ export async function removeStudentPhoto(
   supabase: SupabaseClient,
   args: { schoolId: string; studentId: string; photoPath?: string | null },
 ) {
+  const { error } = await supabase.rpc("update_student_photo", {
+    p_student_id: args.studentId,
+    p_photo_path: null,
+  });
+  if (error) throw error;
+
   if (args.photoPath) {
     const { error: removeError } = await supabase.storage
       .from("student-photos")
       .remove([args.photoPath]);
     if (removeError) throw removeError;
   }
-
-  const { error } = await supabase
-    .from("students")
-    .update({ photo_url: null })
-    .eq("id", args.studentId)
-    .eq("school_id", args.schoolId);
-
-  if (error) throw error;
 }
 
 export async function signedStudentPhotoUrl(

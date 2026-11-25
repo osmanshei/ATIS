@@ -16,7 +16,7 @@ export default async function AdmissionsPage({
 
   const [admissionsResult, classesResult] = await Promise.all([
     supabase
-      .from("admissions")
+      .from("admission_role_directory")
       .select(
         "id,registration_number,admission_number,first_name,middle_name,last_name,gender,date_of_birth,status,applied_for_class_id,allotted_class_id,registration_date,admission_confirmed_date,rejection_reason",
       )

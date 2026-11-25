@@ -23,7 +23,7 @@ export default async function FeedingPaymentsPage({
   const q = String(params.q || "").trim();
 
   let studentQuery = supabase
-    .from("students")
+    .from("student_role_directory")
     .select("id,admission_number,first_name,middle_name,last_name,class_id")
     .eq("status", "active")
     .order("first_name")
@@ -45,8 +45,8 @@ export default async function FeedingPaymentsPage({
   const [{ data: student }, { data: plan }, { data: balance }, { data: recent }] = await Promise.all([
     studentId
       ? supabase
-          .from("students")
-          .select("id,admission_number,first_name,middle_name,last_name,class_id,classes(class_name,section)")
+          .from("student_role_directory")
+          .select("id,admission_number,first_name,middle_name,last_name,class_id,class_name,class_section")
           .eq("id", studentId)
           .maybeSingle()
       : Promise.resolve({ data: null }),

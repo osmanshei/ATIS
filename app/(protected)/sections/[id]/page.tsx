@@ -39,8 +39,8 @@ export default async function ColourSectionRegisterPage({
       .eq("section_name", sectionName)
       .maybeSingle(),
     supabase
-      .from("students")
-      .select("id,admission_number,first_name,middle_name,last_name,gender,class_id,classes(class_name,section)")
+      .from("student_role_directory")
+      .select("id,admission_number,first_name,middle_name,last_name,gender,class_id,class_name,class_section")
       .eq("school_id", profile.school_id)
       .eq("student_section", sectionName)
       .eq("status", "active")
@@ -48,7 +48,7 @@ export default async function ColourSectionRegisterPage({
       .order("last_name")
       .range(0, 4999),
     supabase
-      .from("staff")
+      .from("staff_role_directory")
       .select("id,full_name,employee_code")
       .eq("school_id", profile.school_id)
       .eq("role", "teacher")
@@ -155,7 +155,7 @@ export default async function ColourSectionRegisterPage({
                 <td>{student.admission_number || "—"}</td>
                 <td>{[student.first_name, student.middle_name, student.last_name].filter(Boolean).join(" ")}</td>
                 <td>{student.gender || "—"}</td>
-                <td>{student.classes?.class_name || "Unassigned"}{student.classes?.section ? " / " + student.classes.section : ""}</td>
+                <td>{student.class_name || "Unassigned"}{student.class_section ? " / " + student.class_section : ""}</td>
                 <td>&nbsp;</td>
               </tr>
             ))}

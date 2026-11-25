@@ -56,7 +56,7 @@ export default async function BalancesPage({
   );
   const { data: arrearsStudents } = arrearsStudentIds.length
     ? await supabase
-        .from("students")
+        .from("student_role_directory")
         .select("id,admission_number,first_name,middle_name,last_name")
         .in("id", arrearsStudentIds)
     : { data: [] as any[] };

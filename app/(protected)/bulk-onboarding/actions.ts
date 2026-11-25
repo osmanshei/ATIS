@@ -43,7 +43,7 @@ export async function bulkImportStudentsAction(formData: FormData) {
   }
 
   const { data: currentStudents } = await supabase
-    .from("students")
+    .from("student_role_directory")
     .select("admission_number");
   const existingAdmissionNumbers = new Set(
     (currentStudents || []).map((s) => normalize(s.admission_number || "")).filter(Boolean),
