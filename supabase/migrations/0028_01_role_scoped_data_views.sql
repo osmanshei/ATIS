@@ -241,6 +241,13 @@ BEGIN
       RAISE EXCEPTION 'Expected a students table reference in view %', v_name;
     END IF;
     v_definition := replace(v_definition, 'students ', 'public.student_role_directory ');
+    IF v_name = 'feeding_student_balance' THEN
+      v_definition := replace(
+        v_definition,
+        'GROUP BY st.school_id, t.id, st.id, c.id, p.id',
+        'GROUP BY st.school_id, t.id, st.id, st.admission_number, st.first_name, st.middle_name, st.last_name, st.class_id, c.id, p.id'
+      );
+    END IF;
     EXECUTE format(
       'CREATE OR REPLACE VIEW public.%I WITH (security_invoker = true) AS %s',
       v_name,
@@ -253,6 +260,11 @@ BEGIN
     RAISE EXCEPTION 'Expected a staff table reference in staff_early_attendance_summary';
   END IF;
   v_definition := replace(v_definition, 'staff ', 'public.staff_role_directory ');
+  v_definition := replace(
+    v_definition,
+    'sa.staff_id, st.id',
+    'sa.staff_id, st.id, st.full_name, st.employee_code'
+  );
   EXECUTE format(
     'CREATE OR REPLACE VIEW public.staff_early_attendance_summary WITH (security_invoker = true) AS %s',
     v_definition
