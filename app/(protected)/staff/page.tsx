@@ -12,6 +12,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
 
   const rows = (data || []) as any[];
   const isAdmin = profile.role === "admin";
+  const canViewContracts = ["admin", "supervisor"].includes(profile.role);
 
   return (
     <>
@@ -23,7 +24,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         <div className="action-row">
           {isAdmin ? <Link className="button" href="/staff/new">Add Staff</Link> : null}
           {isAdmin ? <Link className="button secondary" href="/staff/onboarding">Bulk Onboarding</Link> : null}
-          <Link className="button secondary" href="/staff/contracts">Appointments & Contracts</Link>
+          {canViewContracts ? <Link className="button secondary" href="/staff/contracts">Appointments & Contracts</Link> : null}
         </div>
       </div>
       {params.ok ? <div className="notice success">{params.ok}</div> : null}
