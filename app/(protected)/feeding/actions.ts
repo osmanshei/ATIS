@@ -9,7 +9,7 @@ function value(formData: FormData, key: string) {
 }
 
 export async function saveFeedingRateAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant"]);
+  const { supabase } = await requireProfile(["admin", "supervisor"]);
 
   const payload = {
     term_id: value(formData, "term_id"),
@@ -32,7 +32,7 @@ export async function saveFeedingRateAction(formData: FormData) {
 }
 
 export async function saveStudentFeedingPlanAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
 
   const payload = {
     term_id: value(formData, "term_id"),
@@ -55,7 +55,7 @@ export async function saveStudentFeedingPlanAction(formData: FormData) {
 }
 
 export async function recordFeedingPaymentAction(formData: FormData) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const { supabase } = await requireProfile(["admin", "supervisor", "clerk"]);
   const studentId = value(formData, "student_id");
   const termId = value(formData, "term_id");
 
