@@ -64,7 +64,8 @@ export default async function FeedingSettingsPage({
 
   const { data: students } = await studentQuery;
   const rateMap = new Map((rates || []).map((row: any) => [row.class_id, row]));
-  const canConfigureRates = ["admin", "supervisor", "accountant"].includes(profile.role);
+  const canConfigureRates = ["admin", "supervisor"].includes(profile.role);
+  const canManagePlans = ["admin", "supervisor", "clerk"].includes(profile.role);
 
   return (
     <>
@@ -135,6 +136,7 @@ export default async function FeedingSettingsPage({
           <button className="button secondary compact" type="submit">Search</button>
         </form>
 
+        {canManagePlans ? (
         <form className="card feeding-plan-form" action={saveStudentFeedingPlanAction}>
           <input type="hidden" name="term_id" value={termId} />
           <div className="field">
@@ -175,6 +177,9 @@ export default async function FeedingSettingsPage({
           </div>
           <button className="button" type="submit">Save Feeding Plan</button>
         </form>
+        ) : (
+          <div className="notice">You have read-only access to feeding. You can review rates here and view individual student plans and balances from the Feeding Payments page.</div>
+        )}
       </section>
     </>
   );

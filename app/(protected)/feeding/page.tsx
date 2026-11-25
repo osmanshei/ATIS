@@ -74,7 +74,7 @@ export default async function FeedingPage({
 
   const day = new Date(date + "T00:00:00").getUTCDay();
   const feedingDay = day >= 1 && day <= 4;
-  const canConfigure = ["admin", "supervisor", "accountant", "clerk"].includes(profile.role);
+  const canRecordPayments = ["admin", "supervisor", "clerk"].includes(profile.role);
 
   return (
     <>
@@ -88,8 +88,8 @@ export default async function FeedingPage({
           </p>
         </div>
         <div className="hero-actions">
-          {canConfigure ? <Link className="button hero-button" href="/feeding/payments">Record Payment</Link> : null}
-          {canConfigure ? <Link className="button secondary hero-secondary" href="/feeding/settings">Rates & Plans</Link> : null}
+          {canRecordPayments ? <Link className="button hero-button" href="/feeding/payments">Record Payment</Link> : <Link className="button hero-button" href="/feeding/payments">Payment History</Link>}
+          <Link className="button secondary hero-secondary" href="/feeding/settings">Rates & Plans</Link>
         </div>
       </section>
 

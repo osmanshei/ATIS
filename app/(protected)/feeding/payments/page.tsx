@@ -15,7 +15,8 @@ export default async function FeedingPaymentsPage({
 }: {
   searchParams: Promise<{ term?: string; q?: string; student?: string; ok?: string; error?: string }>;
 }) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const canRecordPayments = ["admin", "supervisor", "clerk"].includes(profile.role);
   const params = await searchParams;
 
   const { data: terms } = await supabase.from("terms").select("id,name,is_current,starts_on").order("starts_on");
@@ -143,7 +144,7 @@ export default async function FeedingPaymentsPage({
 
           {plan?.frequency === "exempt" ? (
             <div className="notice success">This student is exempt from feeding fees ({plan.exemption_type || "exemption"}).</div>
-          ) : (
+          ) : canRecordPayments ? (
             <form className="card feeding-payment-form" action={recordFeedingPaymentAction}>
               <input type="hidden" name="term_id" value={termId} />
               <input type="hidden" name="student_id" value={student.id} />
@@ -184,6 +185,8 @@ export default async function FeedingPaymentsPage({
               </div>
               <button className="button" type="submit">Record Feeding Payment</button>
             </form>
+          ) : (
+            <div className="notice">You have read-only access to feeding. You can review this student’s plan, payments and remaining credit, but cannot record a payment or change the plan.</div>
           )}
         </>
       ) : null}

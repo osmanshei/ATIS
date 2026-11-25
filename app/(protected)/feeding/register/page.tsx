@@ -15,10 +15,11 @@ export default async function FeedingRegisterPage({
 }: {
   searchParams: Promise<{ class?: string; date?: string }>;
 }) {
-  const { supabase } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor", "accountant", "clerk"]);
   const params = await searchParams;
   const classId = params.class || "";
   const date = params.date || new Date().toISOString().slice(0, 10);
+  const canManageAttendance = ["admin", "supervisor", "clerk"].includes(profile.role);
   if (!classId) notFound();
 
   const [{ data: cls }, { data: rows }] = await Promise.all([
@@ -46,15 +47,15 @@ export default async function FeedingRegisterPage({
         </div>
         <div className="action-row">
           <Link className="button secondary" href={"/feeding?date=" + date}>Back to Feeding</Link>
-          <Link className="button secondary" href={"/attendance/register?class=" + classId + "&date=" + date}>Open Attendance</Link>
+          {canManageAttendance ? <Link className="button secondary" href={"/attendance/register?class=" + classId + "&date=" + date}>Open Attendance</Link> : null}
         </div>
       </div>
 
       {!rows?.length ? (
         <div className="empty-state">
           <strong>Daily attendance has not been marked for this class.</strong>
-          <p>Take attendance first. Feeding charges will be generated automatically for present and late students.</p>
-          <Link className="button" href={"/attendance/register?class=" + classId + "&date=" + date}>Take Attendance</Link>
+          <p>{canManageAttendance ? "Take attendance first. Feeding charges will be generated automatically for present and late students." : "Attendance is managed by the authorised attendance team. Feeding charges will appear here after attendance has been recorded."}</p>
+          {canManageAttendance ? <Link className="button" href={"/attendance/register?class=" + classId + "&date=" + date}>Take Attendance</Link> : null}
         </div>
       ) : (
         <div className="table-wrap feeding-register-table">
