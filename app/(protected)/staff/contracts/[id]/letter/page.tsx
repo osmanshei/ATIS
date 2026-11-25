@@ -10,7 +10,7 @@ export default async function StaffAppointmentLetterPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
+  const { supabase, profile } = await requireProfile(["admin", "supervisor"]);
 
   const { data: contract } = await supabase
     .from("staff_contract_summary")
