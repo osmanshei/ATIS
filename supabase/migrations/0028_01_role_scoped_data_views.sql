@@ -237,10 +237,10 @@ BEGIN
   ]
   LOOP
     v_definition := pg_get_viewdef(format('public.%I', v_name)::regclass, true);
-    IF position('students ' in v_definition) = 0 THEN
+    IF v_definition !~ E'\\mstudents\\M' THEN
       RAISE EXCEPTION 'Expected a students table reference in view %', v_name;
     END IF;
-    v_definition := replace(v_definition, 'students ', 'public.student_role_directory ');
+    v_definition := regexp_replace(v_definition, E'\\mstudents\\M', 'public.student_role_directory', 'g');
     IF v_name = 'feeding_student_balance' THEN
       v_definition := replace(
         v_definition,
@@ -256,10 +256,10 @@ BEGIN
   END LOOP;
 
   v_definition := pg_get_viewdef('public.staff_early_attendance_summary'::regclass, true);
-  IF position('staff ' in v_definition) = 0 THEN
+  IF v_definition !~ E'\\mstaff\\M' THEN
     RAISE EXCEPTION 'Expected a staff table reference in staff_early_attendance_summary';
   END IF;
-  v_definition := replace(v_definition, 'staff ', 'public.staff_role_directory ');
+  v_definition := regexp_replace(v_definition, E'\\mstaff\\M', 'public.staff_role_directory', 'g');
   v_definition := replace(
     v_definition,
     'sa.staff_id, st.id',
