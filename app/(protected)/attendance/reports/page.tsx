@@ -49,7 +49,7 @@ export default async function AttendanceReportsPage({
   );
   const { data: historicalStudents } = historicalStudentIds.length
     ? await supabase
-        .from("students")
+        .from("student_role_directory")
         .select("id,admission_number,first_name,middle_name,last_name")
         .in("id", historicalStudentIds)
     : { data: [] as any[] };

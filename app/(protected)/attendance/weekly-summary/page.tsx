@@ -50,7 +50,7 @@ export default async function WeeklyAttendanceSummaryPage({
   const [{ data: students }, { data: sessions }] = selectedTermId && selectedClassId && term?.starts_on && term?.ends_on
     ? await Promise.all([
         supabase
-          .from("students")
+          .from("student_role_directory")
           .select("id,admission_number,first_name,middle_name,last_name")
           .eq("class_id", selectedClassId)
           .eq("status", "active")

@@ -47,7 +47,7 @@ export default async function PaymentsPage({
 
   if (!selectedStudentId && (searchText.length >= 2 || searchClassId)) {
     let studentQuery = supabase
-      .from("students")
+      .from("student_role_directory")
       .select("id,admission_number,first_name,middle_name,last_name,class_id")
       .eq("status", "active")
       .limit(20);
@@ -75,7 +75,7 @@ export default async function PaymentsPage({
 
   const selectedStudentResult = selectedStudentId
     ? await supabase
-        .from("students")
+        .from("student_role_directory")
         .select("id,admission_number,first_name,middle_name,last_name,class_id")
         .eq("id", selectedStudentId)
         .eq("status", "active")

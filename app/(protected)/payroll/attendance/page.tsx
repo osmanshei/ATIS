@@ -26,7 +26,7 @@ export default async function StaffPayrollAttendancePage({
     { data: summary },
   ] = await Promise.all([
     supabase
-      .from("staff")
+      .from("staff_role_directory")
       .select("id,full_name,employee_code,position_title")
       .eq("status","active")
       .order("full_name"),

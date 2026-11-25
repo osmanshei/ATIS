@@ -20,7 +20,7 @@ export default async function StudentFinancePage({
 
   const [{ data: student }, { data: terms }] = await Promise.all([
     supabase
-      .from("students")
+      .from("student_role_directory")
       .select("id,admission_number,first_name,middle_name,last_name,class_id,concession_percent")
       .eq("id", studentId)
       .single(),

@@ -195,11 +195,11 @@ export default async function DashboardPage({
   }
 
   const [students, staff, classes, subjects, admissions] = await Promise.all([
-    supabase.from("students").select("id", { count: "exact", head: true }).eq("status", "active"),
-    supabase.from("staff").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("student_role_directory").select("id", { count: "exact", head: true }).eq("status", "active"),
+    supabase.from("staff_role_directory").select("id", { count: "exact", head: true }).eq("status", "active"),
     supabase.from("classes").select("id", { count: "exact", head: true }).eq("is_active", true),
     supabase.from("subject_catalogue").select("id", { count: "exact", head: true }).eq("is_active", true),
-    supabase.from("admissions").select("id", { count: "exact", head: true }).in("status", ["registered", "under_review", "admitted"]),
+    supabase.from("admission_role_directory").select("id", { count: "exact", head: true }).in("status", ["registered", "under_review", "admitted"]),
   ]);
 
   const stats = [

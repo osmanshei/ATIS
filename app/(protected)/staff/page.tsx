@@ -5,8 +5,8 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
   const params = await searchParams;
   const { data, error } = await supabase
-    .from("staff")
-    .select("id,user_id,employee_code,full_name,email,mobile,role,position_title,specialization_duty,profile_photo_url,status")
+    .from("staff_role_directory")
+    .select("id,user_id,has_login,employee_code,full_name,email,mobile,role,position_title,specialization_duty,profile_photo_url,status")
     .order("full_name")
     .limit(300);
 
@@ -48,7 +48,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                 <td>{r.mobile || "—"}</td>
                 <td>{r.email || "—"}</td>
                 <td>{r.profile_photo_url ? <span className="tag">Captured</span> : <span className="tag gray">None</span>}</td>
-                <td>{r.user_id ? <span className="tag">Created</span> : <span className="tag gray">Not created</span>}</td>
+                <td>{r.has_login ? <span className="tag">Created</span> : <span className="tag gray">Not created</span>}</td>
                 <td>{r.status}</td>
                 <td>
                   <div className="action-row">

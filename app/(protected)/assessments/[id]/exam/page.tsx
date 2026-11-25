@@ -24,7 +24,7 @@ export default async function ExamScoreEntryPage({
 
   const [{ data: students }, { data: scores }] = await Promise.all([
     supabase
-      .from("students")
+      .from("student_role_directory")
       .select("id,admission_number,first_name,middle_name,last_name")
       .eq("class_id", setup.class_id)
       .eq("status", "active")

@@ -27,7 +27,7 @@ export default async function AttendanceRegisterPage({
       .eq("id", classId)
       .single(),
     supabase
-      .from("students")
+      .from("student_role_directory")
       .select("id,admission_number,first_name,middle_name,last_name")
       .eq("class_id", classId)
       .eq("status", "active")

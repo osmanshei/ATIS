@@ -13,7 +13,7 @@ export default async function AdmissionLetterPage({
   const { supabase, profile } = await requireProfile(["admin", "supervisor", "clerk"]);
 
   const { data: admission } = await supabase
-    .from("admissions")
+    .from("admission_role_directory")
     .select(
       "id,registration_number,admission_number,first_name,middle_name,last_name,status,admission_confirmed_date,admission_date,allotted_class_id,applied_for_class_id,admission_type,remarks",
     )
